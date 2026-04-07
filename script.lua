@@ -21,9 +21,10 @@ local speedValue = 16
 local infJump = false
 
 -- COMBAT/TEST VARS
-local autoAttackV1 = false -- Esta é a variável que o botão vai controlar
+local autoAttackV1 = false
 local autoAttackV2 = false
 local autoAttackV3 = false
+local autoAttackV4 = false
 local hitboxEnabled = false
 local hitboxSize = 5
 local hitboxTransparency = 1.0
@@ -159,13 +160,11 @@ TestTab:CreateSection("Laboratório de Ataque")
 TestTab:CreateToggle({
     Name = "V1: Original (VIM Mode)",
     CurrentValue = false,
-    Callback = function(v) 
-        autoAttackV1 = v -- Agora o botão controla o loop corretamente
-    end
+    Callback = function(v) autoAttackV1 = v end
 })
 
 TestTab:CreateToggle({
-    Name = "V2: VU Click (Mobile Safe?)",
+    Name = "V2: VU Click",
     CurrentValue = false,
     Callback = function(v) autoAttackV2 = v end
 })
@@ -176,15 +175,22 @@ TestTab:CreateToggle({
     Callback = function(v) autoAttackV3 = v end
 })
 
+TestTab:CreateToggle({
+    Name = "V4: Remote Sniper (Novo)",
+    CurrentValue = false,
+    Callback = function(v) autoAttackV4 = v end
+})
+
+TestTab:CreateSection("O V4 tenta 'caçar' o evento da arma.")
+
 ---------------------------------------------------
 -- LOOPS DE EXECUÇÃO
 ---------------------------------------------------
 
--- LOOP V1 (O CÓDIGO QUE VOCÊ MANDOU)
+-- LOOP V1 (Original VIM)
 task.spawn(function()
     while true do
         if autoAttackV1 then
-            -- Exatamente o seu código do VIM
             VIM:SendMouseButtonEvent(0,0,0,true,game,0)
             task.wait(0.01)
             VIM:SendMouseButtonEvent(0,0,0,false,game,0)
@@ -195,7 +201,7 @@ task.spawn(function()
     end
 end)
 
--- LOOP V2 (Tentativa de clique sem sumir analógico)
+-- LOOP V2 (VU)
 task.spawn(function()
     while true do
         if autoAttackV2 then
@@ -209,14 +215,35 @@ task.spawn(function()
     end
 end)
 
--- LOOP V3 (Ativação interna)
+-- LOOP V3 (Internal)
 task.spawn(function()
     while true do
         if autoAttackV3 then
             local tool = LP.Character and LP.Character:FindFirstChildOfClass("Tool")
             if tool then tool:Activate() end
+            task.wait(0.1)
+        else
+            task.wait(0.1)
         end
-        task.wait(0.1)
+    end
+end)
+
+-- LOOP V4 (Remote Event Sniper)
+task.spawn(function()
+    while true do
+        if autoAttackV4 then
+            local tool = LP.Character and LP.Character:FindFirstChildOfClass("Tool")
+            if tool then
+                for _, obj in pairs(tool:GetDescendants()) do
+                    if obj:IsA("RemoteEvent") then
+                        obj:FireServer()
+                    end
+                end
+            end
+            task.wait(0.1)
+        else
+            task.wait(0.1)
+        end
     end
 end)
 
@@ -227,7 +254,7 @@ UIS.JumpRequest:Connect(function()
     end
 end)
 
--- LOOP PRINCIPAL (MOVIMENTAÇÃO E HITBOX)
+-- LOOP PRINCIPAL
 task.spawn(function()
     while true do
         task.wait(0.01)
@@ -268,55 +295,6 @@ end)
 
 Rayfield:Notify({
     Title = "Lzinn Hub",
-    Content = "V1 Corrigido e pronto!",
+    Content = "Menu Completo com V1 até V4!",
     Duration = 5
 })
-
-local autoAttackV4 = false
-
--- Adicione esta variável no topo com as outras
-local autoAttackV4 = false
-
----------------------------------------------------
--- ABA TESTE (ATUALIZADA COM V4)
----------------------------------------------------
-TestTab:CreateSection("Laboratório de Ataque")
-
-TestTab:CreateToggle({
-    Name = "V1: Original (VIM Mode)",
-    CurrentValue = false,
-    Callback = function(v) autoAttackV1 = v end
-})
-
-TestTab:CreateToggle({
-    Name = "V4: Remote Sniper (Novo)",
-    CurrentValue = false,
-    Callback = function(v) autoAttackV4 = v end
-})
-
-TestTab:CreateSection("O V4 tenta achar o 'código' do botão sozinho.")
-
----------------------------------------------------
--- NOVO LOOP V4 (DISPARO DE EVENTO)
----------------------------------------------------
-task.spawn(function()
-    while true do
-        if autoAttackV4 then
-            local char = LP.Character
-            local tool = char and char:FindFirstChildOfClass("Tool")
-            
-            if tool then
-                -- Procura por qualquer RemoteEvent dentro da arma
-                for _, obj in pairs(tool:GetDescendants()) do
-                    if obj:IsA("RemoteEvent") then
-                        -- Dispara o evento (isso simula o clique do botão de ataque)
-                        obj:FireServer() 
-                    end
-                end
-            end
-            task.wait(0.1) -- Velocidade do ataque
-        else
-            task.wait(0.5)
-        end
-    end
-end)
