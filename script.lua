@@ -21,12 +21,10 @@ local infJump = false
 
 -- COMBAT VARS
 local autoAttackV1 = false
+local autoAttackV2 = false
 local hitboxEnabled = false
 local hitboxSize = 5
 local hitboxTransparency = 1.0
-
--- TEST VARS
-local clickTrackerActive = false
 
 ---------------------------------------------------
 -- JANELA PRINCIPAL
@@ -41,7 +39,6 @@ local Window = Rayfield:CreateWindow({
 local TeleportTab = Window:CreateTab("Teleporte", 4483362458)
 local PlayerTab = Window:CreateTab("Jogador", 4483362458)
 local CombatTab = Window:CreateTab("Combate", 4483362458)
-local TestTab = Window:CreateTab("Teste", 4483362458)
 
 ---------------------------------------------------
 -- FUNÇÕES SUPORTE
@@ -127,14 +124,20 @@ PlayerTab:CreateToggle({
 })
 
 ---------------------------------------------------
--- ABA COMBATE
+-- ABA COMBATE (V1 e V2)
 ---------------------------------------------------
 CombatTab:CreateSection("Ataque Automático")
 
 CombatTab:CreateToggle({
-    Name = "Auto Attack V1 (VIM Mode)",
+    Name = "Auto Attack V1 (VIM - Some Analógico)",
     CurrentValue = false,
     Callback = function(v) autoAttackV1 = v end
+})
+
+CombatTab:CreateToggle({
+    Name = "Auto Attack V2 (Mobile - Não Some Analógico)",
+    CurrentValue = false,
+    Callback = function(v) autoAttackV2 = v end
 })
 
 CombatTab:CreateSection("Configurações de Hitbox")
@@ -162,51 +165,10 @@ CombatTab:CreateSlider({
 })
 
 ---------------------------------------------------
--- ABA TESTE (SCANNER + TRACKER)
----------------------------------------------------
-TestTab:CreateSection("Ferramentas de Identificação")
-
-TestTab:CreateButton({
-    Name = "Abrir Console (F9)",
-    Callback = function()
-        VIM:SendKeyEvent(true, Enum.KeyCode.F9, false, game)
-    end
-})
-
-TestTab:CreateToggle({
-    Name = "Rastreador de Cliques (Log)",
-    CurrentValue = false,
-    Callback = function(v)
-        clickTrackerActive = v
-        if v then
-            Rayfield:Notify({Title = "Rastreador", Content = "Ativado! Clique em algo para ver o nome no Console.", Duration = 3})
-        end
-    end
-})
-
--- LÓGICA DO RASTREADOR
-local function trackClicks()
-    -- Conecta ao clique do mouse/toque
-    UIS.InputBegan:Connect(function(input, processed)
-        if clickTrackerActive and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
-            local guiObjects = LP.PlayerGui:GetGuiObjectsAtPosition(input.Position.X, input.Position.Y)
-            for _, obj in pairs(guiObjects) do
-                if obj:IsA("TextButton") or obj:IsA("ImageButton") then
-                    print("--- BOTÃO CLICADO ---")
-                    print("Nome: " .. obj.Name)
-                    print("Caminho: " .. obj:GetFullName())
-                    print("---------------------")
-                end
-            end
-        end
-    end)
-end
-trackClicks()
-
----------------------------------------------------
 -- LOOPS DE EXECUÇÃO
 ---------------------------------------------------
 
+-- LOOP AUTO ATAQUE V1 (Original VIM)
 task.spawn(function()
     while true do
         if autoAttackV1 then
@@ -220,12 +182,35 @@ task.spawn(function()
     end
 end)
 
+-- LOOP AUTO ATAQUE V2 (NOVO - DISPARA O BOTÃO "ATK" DIRETAMENTE)
+task.spawn(function()
+    while true do
+        if autoAttackV2 then
+            pcall(function()
+                local atkButton = LP.PlayerGui.MobileScr.ControlFrame.ATK
+                -- Simula o pressionamento do botão mobile
+                for _, connection in pairs(getconnections(atkButton.MouseButton1Click)) do
+                    connection:Fire()
+                end
+                for _, connection in pairs(getconnections(atkButton.Activated)) do
+                    connection:Fire()
+                end
+            end)
+            task.wait(0.05) -- Velocidade do clique
+        else
+            task.wait(0.1)
+        end
+    end
+end)
+
+-- PULO INFINITO
 UIS.JumpRequest:Connect(function()
     if infJump and LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
         LP.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
     end
 end)
 
+-- LOOP PRINCIPAL
 task.spawn(function()
     while true do
         task.wait(0.01)
