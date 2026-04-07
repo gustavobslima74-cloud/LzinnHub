@@ -19,10 +19,14 @@ local hitboxEnabled = false
 local hitboxSize = 5
 local hitboxTransparency = 1.0
 
+-- Criando a Janela com ID Único para forçar o carregamento da v1.3
 local Window = Rayfield:CreateWindow({
     Name = "Lzinn Hub | v1.3",
-    LoadingTitle = "Lzinn Interface",
-    LoadingSubtitle = "by Lzinn7"
+    LoadingTitle = "Lzinn Interface v1.3",
+    LoadingSubtitle = "by Lzinn7",
+    ConfigurationSaving = {
+        Enabled = false -- Mantemos false para não puxar lixo da 1.2
+    }
 })
 
 local TeleportTab = Window:CreateTab("Teleporte", 4483362458)
@@ -30,7 +34,7 @@ local PlayerTab = Window:CreateTab("Jogador", 4483362458)
 local CombatTab = Window:CreateTab("Combate", 4483362458)
 local TestTab = Window:CreateTab("Teste", 4483362458)
 
--- TELEPORTE
+-- ABA TELEPORTE
 TeleportTab:CreateToggle({
     Name = "Auto Select (Mais Próximo)",
     CurrentValue = false,
@@ -70,7 +74,7 @@ TeleportTab:CreateToggle({
     Callback = function(v) followEnabled = v end
 })
 
--- JOGADOR
+-- ABA JOGADOR
 PlayerTab:CreateToggle({
     Name = "Speed (Ligado/Desligado)",
     CurrentValue = false,
@@ -91,7 +95,7 @@ PlayerTab:CreateToggle({
     Callback = function(v) infJump = v end
 })
 
--- COMBATE
+-- ABA COMBATE
 CombatTab:CreateToggle({
     Name = "Auto Attack V1 (VIM Mode)",
     CurrentValue = false,
@@ -122,14 +126,14 @@ CombatTab:CreateSlider({
     Callback = function(v) hitboxTransparency = v end
 })
 
--- TESTE (LÓGICA NOVA v1.3)
+-- ABA TESTE (V2 - SISTEMA SEM MOUSE)
 TestTab:CreateToggle({
-    Name = "Auto Attack V2 (Direct Signal)",
+    Name = "Auto Attack V2 (Signal Bypass)",
     CurrentValue = false,
     Callback = function(v) autoAttackV2 = v end
 })
 
--- LOOP V1
+-- LOOP V1 (Aquele que some o analógico)
 task.spawn(function()
     while true do
         task.wait(0.01)
@@ -142,22 +146,22 @@ task.spawn(function()
     end
 end)
 
--- LOOP V2 (SINAL DIRETO - NÃO AFETA ANALÓGICO)
+-- LOOP V2 (NOVO SISTEMA - Tenta disparar o botão sem usar o Mouse virtual)
 task.spawn(function()
     while true do
         task.wait(0.01)
         if autoAttackV2 then
             pcall(function()
-                local atkButton = LP.PlayerGui:FindFirstChild("ATK", true) or LP.PlayerGui.MobileScr.ControlFrame.ATK
+                local atkButton = LP.PlayerGui:FindFirstChild("ATK", true)
                 if atkButton then
-                    -- Simula o evento de ativação do botão diretamente no código do jogo
-                    for _, connection in pairs(getconnections(atkButton.MouseButton1Down)) do
-                        connection:Fire()
-                    end
+                    -- Dispara todas as conexões de clique do botão sem simular mouse
                     for _, connection in pairs(getconnections(atkButton.MouseButton1Click)) do
                         connection:Fire()
                     end
                     for _, connection in pairs(getconnections(atkButton.Activated)) do
+                        connection:Fire()
+                    end
+                    for _, connection in pairs(getconnections(atkButton.MouseButton1Down)) do
                         connection:Fire()
                     end
                 end
@@ -215,3 +219,4 @@ task.spawn(function()
     end
 end)
 
+Rayfield:Notify({Title = "Lzinn Hub", Content = "v1.3 Carregada!", Duration = 5})
