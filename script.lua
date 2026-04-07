@@ -5,9 +5,9 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
 
--- VARIÁVEIS
+-- VARIÁVEIS DE CONTROLE
 local selectedPlayer = nil
 local autoSelect = false
 local followEnabled = false
@@ -20,29 +20,30 @@ local speedValue = 16
 local infJump = false
 
 -- COMBAT VARS
+local aimbot = false
+local aimPart = "Head"
+local autoAttack = false
+local autoFarm = false
 local hitboxEnabled = false
 local hitboxSize = 5
 local hitboxTransparency = 1.0
-local aimbot = false
-local autoAttack = false
-local autoFarm = false
 
 ---------------------------------------------------
--- WINDOW
+-- JANELA PRINCIPAL
 ---------------------------------------------------
 local Window = Rayfield:CreateWindow({
-    Name = "Lzinn Hub | Mobile Optimized",
-    LoadingTitle = "Lzinn Interface",
+    Name = "Lzinn Hub | Mobile Edition",
+    LoadingTitle = "Carregando Interface...",
     LoadingSubtitle = "by Luiz"
 })
 
--- ABAS REORGANIZADAS
+-- ABAS
 local TeleportTab = Window:CreateTab("Teleporte", 4483362458)
 local PlayerTab = Window:CreateTab("Jogador", 4483362458)
 local CombatTab = Window:CreateTab("Combate", 4483362458)
 
 ---------------------------------------------------
--- FUNÇÕES AUXILIARES
+-- FUNÇÕES SUPORTE
 ---------------------------------------------------
 local function getPlayerNames()
     local list = {}
@@ -91,14 +92,14 @@ TeleportTab:CreateButton({
 })
 
 TeleportTab:CreateDropdown({
-    Name = "Posição do Teleporte",
+    Name = "Posição",
     Options = {"Behind", "Front", "Above"},
     CurrentOption = {"Behind"},
     Callback = function(v) mode = v[1] end
 })
 
 TeleportTab:CreateToggle({
-    Name = "Grudar no Player (Teleport Loop)",
+    Name = "Grudar no Player",
     CurrentValue = false,
     Callback = function(v) followEnabled = v end
 })
@@ -114,7 +115,7 @@ PlayerTab:CreateToggle({
 
 PlayerTab:CreateSlider({
     Name = "Velocidade",
-    Range = {16, 200},
+    Range = {16, 250},
     Increment = 1,
     CurrentValue = 16,
     Callback = function(v) speedValue = v end
@@ -130,10 +131,31 @@ PlayerTab:CreateToggle({
 -- ABA COMBATE
 ---------------------------------------------------
 CombatTab:CreateToggle({
-    Name = "Aimbot",
+    Name = "Aimbot (Travar Mira)",
     CurrentValue = false,
     Callback = function(v) aimbot = v end
 })
+
+CombatTab:CreateDropdown({
+    Name = "Alvo do Ataque",
+    Options = {"Head", "HumanoidRootPart"},
+    CurrentOption = {"Head"},
+    Callback = function(v) aimPart = v[1] end
+})
+
+CombatTab:CreateToggle({
+    Name = "Auto Atack",
+    CurrentValue = false,
+    Callback = function(v) autoAttack = v end
+})
+
+CombatTab:CreateToggle({
+    Name = "Auto Farm (Gruda + Ataca)",
+    CurrentValue = false,
+    Callback = function(v) autoFarm = v end
+})
+
+CombatTab:CreateSection("Configurações de Hitbox")
 
 CombatTab:CreateToggle({
     Name = "Hitbox Expander",
@@ -157,23 +179,11 @@ CombatTab:CreateSlider({
     Callback = function(v) hitboxTransparency = v end
 })
 
-CombatTab:CreateToggle({
-    Name = "Auto Atack",
-    CurrentValue = false,
-    Callback = function(v) autoAttack = v end
-})
-
-CombatTab:CreateToggle({
-    Name = "Auto Farm (Gruda + Ataca)",
-    CurrentValue = false,
-    Callback = function(v) autoFarm = v end
-})
-
 ---------------------------------------------------
--- LÓGICA DE EXECUÇÃO (LOOPS)
+-- LOOP DE EXECUÇÃO (O CORAÇÃO DO SCRIPT)
 ---------------------------------------------------
 
--- Infinite Jump
+-- Pulo Infinito
 UIS.JumpRequest:Connect(function()
     if infJump and LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
         LP.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
@@ -182,44 +192,45 @@ end)
 
 task.spawn(function()
     while true do
-        task.wait(0.01) -- Loop mais rápido para precisão
+        task.wait(0.01)
         
         if not LP.Character or not LP.Character:FindFirstChild("HumanoidRootPart") then continue end
         local HRP = LP.Character.HumanoidRootPart
         local Hum = LP.Character:FindFirstChildOfClass("Humanoid")
 
-        -- Auto Select Logic
+        -- Lógica de Seleção Automática
         if autoSelect or autoFarm then
-            selectedPlayer = getClosestPlayer()
+            local closest = getClosestPlayer()
+            if closest then selectedPlayer = closest end
         end
 
-        -- Speed Logic
+        -- Lógica de Movimentação (Speed)
         if speedEnabled and Hum then
             Hum.WalkSpeed = speedValue
         end
 
-        -- Follow / Auto Farm Movement
+        -- Lógica de Teleporte/Grudar (Follow ou Auto Farm)
         if (followEnabled or autoFarm) and selectedPlayer and selectedPlayer.Character then
-            local targetHRP = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if targetHRP then
+            local tHRP = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if tHRP then
                 local offset
-                if mode == "Behind" then offset = targetHRP.CFrame.LookVector * -distance
-                elseif mode == "Front" then offset = targetHRP.CFrame.LookVector * distance
+                if mode == "Behind" then offset = tHRP.CFrame.LookVector * -distance
+                elseif mode == "Front" then offset = tHRP.CFrame.LookVector * distance
                 else offset = Vector3.new(0, distance, 0) end
                 
-                HRP.CFrame = CFrame.new(targetHRP.Position + offset, targetHRP.Position)
+                HRP.CFrame = CFrame.new(tHRP.Position + offset, tHRP.Position)
             end
         end
 
-        -- Aimbot Logic
+        -- Lógica de Aimbot (Mira na Cabeça/Trigger)
         if aimbot and selectedPlayer and selectedPlayer.Character then
-            local targetHRP = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if targetHRP then
-                HRP.CFrame = CFrame.new(HRP.Position, Vector3.new(targetHRP.Position.X, HRP.Position.Y, targetHRP.Position.Z))
+            local targetPart = selectedPlayer.Character:FindFirstChild(aimPart)
+            if targetPart then
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position)
             end
         end
 
-        -- Auto Attack / Farm Logic (Correção de Ferramenta)
+        -- Lógica de Ataque Automático (Auto Attack / Farm)
         if (autoAttack or autoFarm) then
             local tool = LP.Character:FindFirstChildOfClass("Tool")
             if tool then
@@ -227,16 +238,22 @@ task.spawn(function()
             end
         end
 
-        -- Hitbox Expander Logic
+        -- Lógica de Hitbox
         if hitboxEnabled then
             for _, p in pairs(Players:GetPlayers()) do
                 if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                    local hrp = p.Character.HumanoidRootPart
-                    hrp.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-                    hrp.Transparency = hitboxTransparency
-                    hrp.CanCollide = false
+                    local pRoot = p.Character.HumanoidRootPart
+                    pRoot.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+                    pRoot.Transparency = hitboxTransparency
+                    pRoot.CanCollide = false
                 end
             end
         end
     end
 end)
+
+Rayfield:Notify({
+    Title = "Lzinn Hub",
+    Content = "Script carregado com sucesso!",
+    Duration = 5
+})
