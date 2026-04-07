@@ -1,4 +1,4 @@
--- LOAD RAYFIELD
+-- LOAD
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 -- SERVICES
@@ -6,24 +6,25 @@ local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
 
--- VARIÁVEIS
+-- VARS
 local selectedPlayer = nil
 local autoSelect = false
 local followEnabled = false
 local distance = 3
 local mode = "Behind"
 
--- COMBAT VARS
 local speedEnabled = false
 local speedValue = 16
 local infJump = false
-local hitboxSize = 5
-local hitboxTransparency = 0.5
+
 local aimbot = false
 local autoAttack = false
 local autoFarm = false
+local attackDelay = 0.6
 
--- VISUAL
+local hitboxSize = 5
+local hitboxTransparency = 1
+
 local highlight = nil
 
 ---------------------------------------------------
@@ -31,19 +32,28 @@ local highlight = nil
 ---------------------------------------------------
 local Window = Rayfield:CreateWindow({
    Name = "Lzinn Hub",
-LoadingTitle = "Lzinn Interface",
-LoadingSubtitle = "by Luiz"
+   LoadingTitle = "Lzinn Hub",
+   LoadingSubtitle = "by Luiz"
 })
 
-local CombatTab = Window:CreateTab("Combat", 4483362458)
-local VisualTab = Window:CreateTab("Visual", 4483362458)
+local TeleportTab = Window:CreateTab("Teleporte", 4483362458)
+local PlayerTab = Window:CreateTab("Jogador", 4483362458)
+local CombatTab = Window:CreateTab("Combate", 4483362458)
 
 ---------------------------------------------------
 -- FUNÇÕES
 ---------------------------------------------------
+local function getPlayers()
+    local t = {}
+    for _,p in pairs(Players:GetPlayers()) do
+        if p ~= LP then table.insert(t, p.Name) end
+    end
+    return t
+end
+
 local function getClosestPlayer()
-    local closest = nil
-    local dist = math.huge
+    local closest, dist = nil, math.huge
+    if not LP.Character or not LP.Character:FindFirstChild("HumanoidRootPart") then return nil end
 
     for _,p in pairs(Players:GetPlayers()) do
         if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
@@ -59,82 +69,43 @@ end
 
 local function applyHighlight(player)
     if highlight then highlight:Destroy() end
-
     if player and player.Character then
         highlight = Instance.new("Highlight")
         highlight.Parent = player.Character
-
-        task.spawn(function()
-            local r,g,b = 255,0,0
-            while highlight and highlight.Parent do
-                task.wait(0.03)
-                r = (r + 3)%256
-                g = (g + 5)%256
-                b = (b + 7)%256
-                highlight.FillColor = Color3.fromRGB(r,g,b)
-            end
-        end)
     end
 end
 
 ---------------------------------------------------
--- COMBAT
+-- TELEPORTE (PRINCIPAL)
 ---------------------------------------------------
 
-local playerList = {}
-
-local function getPlayerNames()
-    local list = {}
-    for _,p in pairs(Players:GetPlayers()) do
-        if p ~= LP then
-            table.insert(list, p.Name)
-        end
-    end
-    return list
-end
-
--- CRIAR DROPDOWN
-local PlayerDropdown = CombatTab:CreateDropdown({
+local dropdown = TeleportTab:CreateDropdown({
    Name = "Selecionar Player",
-   Options = getPlayerNames(),
+   Options = getPlayers(),
    CurrentOption = {},
-   MultipleOptions = false,
-   Flag = "PlayerSelect",
-   Callback = function(Value)
-        autoSelect = false
-        local name = Value[1]
-        selectedPlayer = Players:FindFirstChild(name)
-        applyHighlight(selectedPlayer)
-   end,
-})
-
-CombatTab:CreateButton({
-   Name = "Atualizar Lista de Players",
-   Callback = function()
-        PlayerDropdown:Refresh(getPlayerNames())
+   Callback = function(v)
+      autoSelect = false
+      selectedPlayer = Players:FindFirstChild(v[1])
+      applyHighlight(selectedPlayer)
    end
 })
 
--- AUTO SELECT
-CombatTab:CreateToggle({
-   Name = "Auto Select Player",
+TeleportTab:CreateButton({
+   Name = "Atualizar Lista",
+   Callback = function()
+      dropdown:Refresh(getPlayers())
+   end
+})
+
+TeleportTab:CreateToggle({
+   Name = "Auto Select",
    CurrentValue = false,
    Callback = function(v)
       autoSelect = v
    end
 })
 
--- GRUDAR
-CombatTab:CreateToggle({
-   Name = "Grudar",
-   CurrentValue = false,
-   Callback = function(v)
-      followEnabled = v
-   end
-})
-
--- POSIÇÃO
-CombatTab:CreateDropdown({
+TeleportTab:CreateDropdown({
    Name = "Posição",
    Options = {"Behind","Front"},
    CurrentOption = {"Behind"},
@@ -143,8 +114,19 @@ CombatTab:CreateDropdown({
    end
 })
 
--- SPEED
-CombatTab:CreateToggle({
+TeleportTab:CreateToggle({
+   Name = "Grudar",
+   CurrentValue = false,
+   Callback = function(v)
+      followEnabled = v
+   end
+})
+
+---------------------------------------------------
+-- JOGADOR
+---------------------------------------------------
+
+PlayerTab:CreateToggle({
    Name = "Speed",
    CurrentValue = false,
    Callback = function(v)
@@ -152,7 +134,7 @@ CombatTab:CreateToggle({
    end
 })
 
-CombatTab:CreateSlider({
+PlayerTab:CreateSlider({
    Name = "Velocidade",
    Range = {16,100},
    Increment = 1,
@@ -162,8 +144,7 @@ CombatTab:CreateSlider({
    end
 })
 
--- INFINITE JUMP
-CombatTab:CreateToggle({
+PlayerTab:CreateToggle({
    Name = "Infinite Jump",
    CurrentValue = false,
    Callback = function(v)
@@ -171,7 +152,18 @@ CombatTab:CreateToggle({
    end
 })
 
--- HITBOX
+---------------------------------------------------
+-- COMBATE
+---------------------------------------------------
+
+CombatTab:CreateToggle({
+   Name = "Aimbot",
+   CurrentValue = false,
+   Callback = function(v)
+      aimbot = v
+   end
+})
+
 CombatTab:CreateSlider({
    Name = "Hitbox Size",
    Range = {2,20},
@@ -186,22 +178,12 @@ CombatTab:CreateSlider({
    Name = "Hitbox Transparência",
    Range = {0.1,1},
    Increment = 0.1,
-   CurrentValue = 0.5,
+   CurrentValue = 1,
    Callback = function(v)
       hitboxTransparency = v
    end
 })
 
--- AIMBOT
-CombatTab:CreateToggle({
-   Name = "Aimbot",
-   CurrentValue = false,
-   Callback = function(v)
-      aimbot = v
-   end
-})
-
--- AUTO ATTACK
 CombatTab:CreateToggle({
    Name = "Auto Attack",
    CurrentValue = false,
@@ -210,25 +192,22 @@ CombatTab:CreateToggle({
    end
 })
 
--- AUTO FARM
+CombatTab:CreateSlider({
+   Name = "Velocidade do Attack",
+   Range = {0.2,0.6},
+   Increment = 0.1,
+   CurrentValue = 0.6,
+   Callback = function(v)
+      attackDelay = v
+   end
+})
+
 CombatTab:CreateToggle({
    Name = "Auto Farm",
    CurrentValue = false,
    Callback = function(v)
       autoFarm = v
-   end
-})
-
----------------------------------------------------
--- VISUAL
----------------------------------------------------
-
-VisualTab:CreateButton({
-   Name = "Aplicar Highlight RGB",
-   Callback = function()
-      if selectedPlayer then
-         applyHighlight(selectedPlayer)
-      end
+      if v then followEnabled = true end
    end
 })
 
@@ -238,6 +217,25 @@ VisualTab:CreateButton({
 UIS.JumpRequest:Connect(function()
     if infJump and LP.Character and LP.Character:FindFirstChild("Humanoid") then
         LP.Character.Humanoid:ChangeState("Jumping")
+    end
+end)
+
+---------------------------------------------------
+-- AUTO ATTACK LOOP (CORRIGIDO)
+---------------------------------------------------
+task.spawn(function()
+    while true do
+        if autoAttack or autoFarm then
+            if LP.Character then
+                local tool = LP.Character:FindFirstChildOfClass("Tool")
+                if tool then
+                    tool:Activate()
+                end
+            end
+            task.wait(attackDelay)
+        else
+            task.wait(0.1)
+        end
     end
 end)
 
@@ -253,8 +251,8 @@ task.spawn(function()
         local HRP = LP.Character:FindFirstChild("HumanoidRootPart")
         local humanoid = LP.Character:FindFirstChild("Humanoid")
 
-        -- AUTO SELECT
-        if autoSelect then
+        -- AUTO SELECT / FARM
+        if autoSelect or autoFarm then
             local closest = getClosestPlayer()
             if closest ~= selectedPlayer then
                 selectedPlayer = closest
@@ -285,21 +283,12 @@ task.spawn(function()
             end
         end
 
-        -- AUTO ATTACK / FARM
-        if (autoAttack or autoFarm) then
-            local tool = LP.Character:FindFirstChildOfClass("Tool")
-            if tool then
-                tool:Activate()
-            end
-        end
-
         -- HITBOX
         for _,p in pairs(Players:GetPlayers()) do
             if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
                 local part = p.Character.HumanoidRootPart
                 part.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
                 part.Transparency = hitboxTransparency
-                part.Material = Enum.Material.Neon
                 part.CanCollide = false
             end
         end
