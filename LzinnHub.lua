@@ -4,8 +4,9 @@ local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
 local VIM = game:GetService("VirtualInputManager")
+local RunService = game:GetService("RunService")
 
--- VARIÁVEIS DE CONTROLE RESTAURADAS
+-- VARIÁVEIS
 local selectedPlayer = nil
 local autoSelect = false
 local followEnabled = false
@@ -19,13 +20,18 @@ local hitboxEnabled = false
 local hitboxSize = 5
 local hitboxTransparency = 1.0
 
--- Variáveis de Teste v1.7
-local autoAttackV6 = false
-local autoAttackV7 = false
+-- Variável Combo
+local comboEnabled = false
+
+-- Criar Highlight Global
+local highlight = Instance.new("Highlight")
+highlight.Name = "LzinnHighlight"
+highlight.FillTransparency = 0.5
+highlight.OutlineTransparency = 0
 
 local Window = Rayfield:CreateWindow({
-    Name = "Lzinn Hub | v1.7",
-    LoadingTitle = "Lzinn Interface v1.7",
+    Name = "Lzinn Hub | v1.8",
+    LoadingTitle = "Lzinn Interface v1.8",
     LoadingSubtitle = "by Lzinn7",
     ConfigurationSaving = { Enabled = false }
 })
@@ -36,7 +42,32 @@ local CombatTab = Window:CreateTab("Combate", 4483362458)
 local TestTab = Window:CreateTab("Teste", 4483362458)
 
 ---------------------------------------------------
--- ABA TELEPORTE (RESTAURADA)
+-- LÓGICA RGB HIGHLIGHT
+---------------------------------------------------
+task.spawn(function()
+    while true do
+        for i = 0, 1, 0.01 do
+            local color = Color3.fromHSV(i, 1, 1)
+            highlight.FillColor = color
+            highlight.OutlineColor = color
+            task.wait(0.05)
+        end
+    end
+end)
+
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if selectedPlayer and selectedPlayer.Character then
+            highlight.Parent = selectedPlayer.Character
+        else
+            highlight.Parent = nil
+        end
+    end
+end)
+
+---------------------------------------------------
+-- ABA TELEPORTE
 ---------------------------------------------------
 TeleportTab:CreateToggle({
     Name = "Auto Select (Mais Próximo)",
@@ -78,7 +109,7 @@ TeleportTab:CreateToggle({
 })
 
 ---------------------------------------------------
--- ABA JOGADOR (RESTAURADA)
+-- ABA JOGADOR
 ---------------------------------------------------
 PlayerTab:CreateToggle({
     Name = "Speed (Ligado/Desligado)",
@@ -101,7 +132,7 @@ PlayerTab:CreateToggle({
 })
 
 ---------------------------------------------------
--- ABA COMBATE (RESTAURADA)
+-- ABA COMBATE
 ---------------------------------------------------
 CombatTab:CreateToggle({
     Name = "Auto Attack V1 (VIM Mode)",
@@ -110,7 +141,6 @@ CombatTab:CreateToggle({
 })
 
 CombatTab:CreateSection("Hitbox")
-
 CombatTab:CreateToggle({
     Name = "Hitbox Expander",
     CurrentValue = false,
@@ -125,76 +155,49 @@ CombatTab:CreateSlider({
     Callback = function(v) hitboxSize = v end
 })
 
-CombatTab:CreateSlider({
-    Name = "Transparência",
-    Range = {0, 1},
-    Increment = 0.1,
-    CurrentValue = 1.0,
-    Callback = function(v) hitboxTransparency = v end
-})
-
 ---------------------------------------------------
--- ABA TESTE (MÉTODOS v1.7)
+-- ABA TESTE (NOVO COMBO)
 ---------------------------------------------------
-TestTab:CreateSection("Tentativas de salvar o Analógico")
+TestTab:CreateSection("Sincronização Especial")
 
 TestTab:CreateToggle({
-    Name = "Auto Attack V6 (Signal Fire)",
+    Name = "Combo: Grudar + Atacar",
     CurrentValue = false,
-    Callback = function(v) autoAttackV6 = v end
+    Callback = function(v) 
+        comboEnabled = v
+        autoSelect = v
+        followEnabled = v
+        autoAttackV1 = v
+        
+        Rayfield:Notify({
+            Title = "Modo Combo",
+            Content = v and "Sincronização Ativada!" or "Sincronização Desativada!",
+            Duration = 3
+        })
+    end
 })
 
-TestTab:CreateToggle({
-    Name = "Auto Attack V7 (Object Call)",
-    CurrentValue = false,
-    Callback = function(v) autoAttackV7 = v end
-})
+TestTab:CreateSection("Isso ativa Auto Select, Grudar e VIM simultaneamente.")
 
 ---------------------------------------------------
--- LOOPS E LÓGICA
+-- LOOPS
 ---------------------------------------------------
 
--- LOOP ATAQUE V1
+-- Loop de Ataque VIM
 task.spawn(function()
     while true do
-        task.wait(0.05)
-        if autoAttackV1 then
+        if autoAttackV1 or comboEnabled then
             VIM:SendMouseButtonEvent(0,0,0,true,game,0)
             task.wait(0.01)
             VIM:SendMouseButtonEvent(0,0,0,false,game,0)
+            task.wait(0.05)
+        else
+            task.wait(0.1)
         end
     end
 end)
 
--- LOOP ATAQUE V6
-task.spawn(function()
-    while true do
-        task.wait(0.05)
-        if autoAttackV6 then
-            pcall(function()
-                local btn = LP.PlayerGui:FindFirstChild("ATK", true)
-                if btn then
-                    btn:Activate()
-                    for _, c in pairs(getconnections(btn.MouseButton1Click)) do c:Fire() end
-                    for _, c in pairs(getconnections(btn.Activated)) do c:Fire() end
-                end
-            end)
-        end
-    end
-end)
-
--- LOOP ATAQUE V7
-task.spawn(function()
-    while true do
-        task.wait(0.05)
-        if autoAttackV7 then
-            local tool = LP.Character and LP.Character:FindFirstChildOfClass("Tool")
-            if tool then tool:Activate() end
-        end
-    end
-end)
-
--- LOOP PRINCIPAL (SPEED, FOLLOW, HITBOX, AUTOSELECT)
+-- Loop Principal
 task.spawn(function()
     while true do
         task.wait(0.01)
@@ -203,7 +206,7 @@ task.spawn(function()
         local HRP = LP.Character:FindFirstChild("HumanoidRootPart")
 
         -- Auto Select
-        if autoSelect then
+        if autoSelect or comboEnabled then
             local closest = nil
             local dist = math.huge
             for _,p in pairs(Players:GetPlayers()) do
@@ -219,7 +222,7 @@ task.spawn(function()
         if speedEnabled and Hum then Hum.WalkSpeed = speedValue end
 
         -- Follow
-        if followEnabled and selectedPlayer and selectedPlayer.Character then
+        if (followEnabled or comboEnabled) and selectedPlayer and selectedPlayer.Character then
             local tHRP = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
             if tHRP and HRP then
                 local offset = (mode == "Behind" and tHRP.CFrame.LookVector * -distance) or (mode == "Front" and tHRP.CFrame.LookVector * distance) or Vector3.new(0, distance, 0)
@@ -233,7 +236,6 @@ task.spawn(function()
                 if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
                     local pRoot = p.Character.HumanoidRootPart
                     pRoot.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-                    pRoot.Transparency = hitboxTransparency
                     pRoot.CanCollide = false
                 end
             end
@@ -241,11 +243,8 @@ task.spawn(function()
     end
 end)
 
--- Infinite Jump
 UIS.JumpRequest:Connect(function()
     if infJump and LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
         LP.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
     end
 end)
-
-Rayfield:Notify({Title = "Lzinn Hub", Content = "v1.7 Totalmente Restaurada!", Duration = 5})
