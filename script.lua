@@ -271,3 +271,52 @@ Rayfield:Notify({
     Content = "V1 Corrigido e pronto!",
     Duration = 5
 })
+
+local autoAttackV4 = false
+
+-- Adicione esta variável no topo com as outras
+local autoAttackV4 = false
+
+---------------------------------------------------
+-- ABA TESTE (ATUALIZADA COM V4)
+---------------------------------------------------
+TestTab:CreateSection("Laboratório de Ataque")
+
+TestTab:CreateToggle({
+    Name = "V1: Original (VIM Mode)",
+    CurrentValue = false,
+    Callback = function(v) autoAttackV1 = v end
+})
+
+TestTab:CreateToggle({
+    Name = "V4: Remote Sniper (Novo)",
+    CurrentValue = false,
+    Callback = function(v) autoAttackV4 = v end
+})
+
+TestTab:CreateSection("O V4 tenta achar o 'código' do botão sozinho.")
+
+---------------------------------------------------
+-- NOVO LOOP V4 (DISPARO DE EVENTO)
+---------------------------------------------------
+task.spawn(function()
+    while true do
+        if autoAttackV4 then
+            local char = LP.Character
+            local tool = char and char:FindFirstChildOfClass("Tool")
+            
+            if tool then
+                -- Procura por qualquer RemoteEvent dentro da arma
+                for _, obj in pairs(tool:GetDescendants()) do
+                    if obj:IsA("RemoteEvent") then
+                        -- Dispara o evento (isso simula o clique do botão de ataque)
+                        obj:FireServer() 
+                    end
+                end
+            end
+            task.wait(0.1) -- Velocidade do ataque
+        else
+            task.wait(0.5)
+        end
+    end
+end)
