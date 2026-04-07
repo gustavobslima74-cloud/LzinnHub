@@ -6,7 +6,6 @@ local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
 local VIM = game:GetService("VirtualInputManager")
-local Camera = workspace.CurrentCamera
 
 -- VARIÁVEIS DE CONTROLE
 local selectedPlayer = nil
@@ -21,7 +20,8 @@ local speedValue = 16
 local infJump = false
 
 -- COMBAT/TEST VARS
-local newAutoAttack = false
+local autoAttackV1 = false
+local autoAttackV2 = false
 local hitboxEnabled = false
 local hitboxSize = 5
 local hitboxTransparency = 1.0
@@ -39,19 +39,11 @@ local Window = Rayfield:CreateWindow({
 local TeleportTab = Window:CreateTab("Teleporte", 4483362458)
 local PlayerTab = Window:CreateTab("Jogador", 4483362458)
 local CombatTab = Window:CreateTab("Combate", 4483362458)
-local TestTab = Window:CreateTab("Teste", 4483362458) -- Aba temporária para o novo código
+local TestTab = Window:CreateTab("Teste", 4483362458)
 
 ---------------------------------------------------
 -- FUNÇÕES SUPORTE
 ---------------------------------------------------
-local function getPlayerNames()
-    local list = {}
-    for _,p in pairs(Players:GetPlayers()) do
-        if p ~= LP then table.insert(list, p.Name) end
-    end
-    return list
-end
-
 local function getClosestPlayer()
     local closest = nil
     local dist = math.huge
@@ -78,7 +70,7 @@ TeleportTab:CreateToggle({
 
 local PlayerDropdown = TeleportTab:CreateDropdown({
     Name = "Selecionar Jogador",
-    Options = getPlayerNames(),
+    Options = {}, -- Preenchido pelo botão de atualizar
     CurrentOption = {},
     Callback = function(Value)
         selectedPlayer = Players:FindFirstChild(Value[1])
@@ -87,7 +79,13 @@ local PlayerDropdown = TeleportTab:CreateDropdown({
 
 TeleportTab:CreateButton({
     Name = "Atualizar Lista",
-    Callback = function() PlayerDropdown:Refresh(getPlayerNames()) end
+    Callback = function()
+        local names = {}
+        for _,p in pairs(Players:GetPlayers()) do
+            if p ~= LP then table.insert(names, p.Name) end
+        end
+        PlayerDropdown:Refresh(names)
+    end
 })
 
 TeleportTab:CreateDropdown({
@@ -129,8 +127,6 @@ PlayerTab:CreateToggle({
 ---------------------------------------------------
 -- ABA COMBATE
 ---------------------------------------------------
-CombatTab:CreateSection("Configurações de Hitbox")
-
 CombatTab:CreateToggle({
     Name = "Hitbox Expander",
     CurrentValue = false,
@@ -154,75 +150,91 @@ CombatTab:CreateSlider({
 })
 
 ---------------------------------------------------
--- ABA TESTE (NOVO AUTO ATAQUE)
+-- ABA TESTE (VERSÕES DE AUTO ATAQUE)
 ---------------------------------------------------
+TestTab:CreateSection("Testes de Ataque")
+
 TestTab:CreateToggle({
-    Name = "Novo Auto Attack (VIM)",
+    Name = "Auto Atack V1 (Internal)",
     CurrentValue = false,
-    Callback = function(v)
-        newAutoAttack = v
-    end
+    Callback = function(v) autoAttackV1 = v end
 })
+
+TestTab:CreateToggle({
+    Name = "Auto Atack V2 (Touch Sim)",
+    CurrentValue = false,
+    Callback = function(v) autoAttackV2 = v end
+})
+
+TestTab:CreateSection("Nota: V2 tenta manter o analógico visível.")
 
 ---------------------------------------------------
 -- LOOPS DE EXECUÇÃO
 ---------------------------------------------------
 
--- NOVO AUTO ATAQUE (Código que você enviou)
+-- LOOP AUTO ATAQUE V1 (Internal Activate)
 task.spawn(function()
     while true do
-        if newAutoAttack then
-            -- Simula o clique do mouse no centro da tela
-            VIM:SendMouseButtonEvent(0,0,0,true,game,0)
-            task.wait(0.01)
-            VIM:SendMouseButtonEvent(0,0,0,false,game,0)
-            task.wait(0.04) -- velocidade do spam
-        else
+        if autoAttackV1 then
+            local tool = LP.Character and LP.Character:FindFirstChildOfClass("Tool")
+            if tool then tool:Activate() end
             task.wait(0.1)
+        else
+            task.wait(0.5)
         end
     end
 end)
 
--- Pulo Infinito
+-- LOOP AUTO ATAQUE V2 (Touch Simulation)
+task.spawn(function()
+    while true do
+        if autoAttackV2 then
+            local tool = LP.Character and LP.Character:FindFirstChildOfClass("Tool")
+            if tool then
+                -- Ativa a ferramenta e simula um toque na tela (sem chamar o mouse)
+                tool:Activate()
+                game:GetService("VirtualUser"):ClickButton1(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+            end
+            task.wait(0.05)
+        else
+            task.wait(0.5)
+        end
+    end
+end)
+
+-- LOOP PULO INFINITO
 UIS.JumpRequest:Connect(function()
     if infJump and LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
         LP.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
     end
 end)
 
+-- LOOP PRINCIPAL (MOVIMENTO E HITBOX)
 task.spawn(function()
     while true do
         task.wait(0.01)
+        if not LP.Character then continue end
         
-        if not LP.Character or not LP.Character:FindFirstChild("HumanoidRootPart") then continue end
-        local HRP = LP.Character.HumanoidRootPart
         local Hum = LP.Character:FindFirstChildOfClass("Humanoid")
+        local HRP = LP.Character:FindFirstChild("HumanoidRootPart")
 
-        -- Auto Select
         if autoSelect then
             local closest = getClosestPlayer()
             if closest then selectedPlayer = closest end
         end
 
-        -- Speed
-        if speedEnabled and Hum then
-            Hum.WalkSpeed = speedValue
-        end
+        if speedEnabled and Hum then Hum.WalkSpeed = speedValue end
 
-        -- Follow (Grudar)
         if followEnabled and selectedPlayer and selectedPlayer.Character then
             local tHRP = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if tHRP then
-                local offset
-                if mode == "Behind" then offset = tHRP.CFrame.LookVector * -distance
-                elseif mode == "Front" then offset = tHRP.CFrame.LookVector * distance
-                else offset = Vector3.new(0, distance, 0) end
-                
+            if tHRP and HRP then
+                local offset = (mode == "Behind" and tHRP.CFrame.LookVector * -distance) or 
+                               (mode == "Front" and tHRP.CFrame.LookVector * distance) or 
+                               Vector3.new(0, distance, 0)
                 HRP.CFrame = CFrame.new(tHRP.Position + offset, tHRP.Position)
             end
         end
 
-        -- Hitbox
         if hitboxEnabled then
             for _, p in pairs(Players:GetPlayers()) do
                 if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
@@ -236,8 +248,4 @@ task.spawn(function()
     end
 end)
 
-Rayfield:Notify({
-    Title = "Lzinn Hub",
-    Content = "Aba Teste Adicionada!",
-    Duration = 5
-})
+Rayfield:Notify({Title = "Lzinn Hub", Content = "Script Pronto para Testes!", Duration = 5})
