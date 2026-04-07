@@ -6,6 +6,7 @@ local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
 local VIM = game:GetService("VirtualInputManager")
+local LogService = game:GetService("LogService")
 
 -- VARIÁVEIS DE CONTROLE
 local selectedPlayer = nil
@@ -124,7 +125,7 @@ PlayerTab:CreateToggle({
 })
 
 ---------------------------------------------------
--- ABA COMBATE (V1 ADICIONADO AQUI)
+-- ABA COMBATE
 ---------------------------------------------------
 CombatTab:CreateSection("Ataque Automático")
 
@@ -159,25 +160,33 @@ CombatTab:CreateSlider({
 })
 
 ---------------------------------------------------
--- ABA TESTE (SCANNER DE BOTÕES)
+-- ABA TESTE (SCANNER + CONSOLE)
 ---------------------------------------------------
-TestTab:CreateSection("Scanner de Interface Mobile")
+TestTab:CreateSection("Ferramentas Mobile")
 
 TestTab:CreateButton({
-    Name = "Escanear Botões da Tela (Ver Console F9)",
+    Name = "Abrir Console (F9)",
     Callback = function()
-        print("--- ESCANEANDO BOTÕES ATIVOS ---")
+        -- Simula a abertura do menu de logs do Roblox
+        game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.F9, false, game)
+    end
+})
+
+TestTab:CreateButton({
+    Name = "Escanear Botões (Ver Log)",
+    Callback = function()
+        print("--- ESCANEANDO BOTÕES DA TELA ---")
         local gui = LP:FindFirstChildOfClass("PlayerGui")
         if gui then
             for _, v in pairs(gui:GetDescendants()) do
                 if v:IsA("TextButton") or v:IsA("ImageButton") then
                     if v.Visible and v.AbsoluteSize.X > 0 then
-                        print("Botão Encontrado: " .. v.Name .. " | Caminho: " .. v:GetFullName())
+                        print(">> NOME: " .. v.Name .. " | TIPO: " .. v.ClassName)
                     end
                 end
             end
         end
-        Rayfield:Notify({Title = "Scanner", Content = "Lista gerada no Console (aperte F9)", Duration = 5})
+        Rayfield:Notify({Title = "Scanner", Content = "Botões listados no Console!", Duration = 5})
     end
 })
 
@@ -185,7 +194,6 @@ TestTab:CreateButton({
 -- LOOPS DE EXECUÇÃO
 ---------------------------------------------------
 
--- LOOP AUTO ATAQUE V1
 task.spawn(function()
     while true do
         if autoAttackV1 then
@@ -199,14 +207,12 @@ task.spawn(function()
     end
 end)
 
--- PULO INFINITO
 UIS.JumpRequest:Connect(function()
     if infJump and LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
         LP.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
     end
 end)
 
--- LOOP PRINCIPAL
 task.spawn(function()
     while true do
         task.wait(0.01)
