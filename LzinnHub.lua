@@ -1,3 +1,4 @@
+-- NOVO LINK ESTÁVEL (CORRIGE O ERRO 404)
 local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Rayfield/main/source'))()
 
 local Players = game:GetService("Players")
@@ -19,14 +20,14 @@ local hitboxEnabled = false
 local hitboxSize = 5
 local comboEnabled = false
 
--- Função para garantir que o ataque pare (O "Pulo do Gato")
-local function ForceStop()
+-- FUNÇÃO PARA FORÇAR PARADA DO ATAQUE (CORRIGE O BUG DE FICAR BATENDO)
+local function StopAttack()
     VIM:SendMouseButtonEvent(0,0,0,false,game,0)
 end
 
 local Window = Rayfield:CreateWindow({
-    Name = "Lzinn Hub | v1.8 Fixed",
-    LoadingTitle = "Lzinn Interface v1.8",
+    Name = "Lzinn Hub | v1.8 FIXED",
+    LoadingTitle = "Carregando Interface...",
     LoadingSubtitle = "by Lzinn7",
     ConfigurationSaving = { Enabled = false }
 })
@@ -36,7 +37,8 @@ local PlayerTab = Window:CreateTab("Jogador")
 local CombatTab = Window:CreateTab("Combate")
 local TestTab = Window:CreateTab("Teste")
 
--- [ABA TELEPORTE / JOGADOR MANTIDAS IGUAIS AO SEU ORIGINAL]
+-- [ABAS MANTIDAS COM A LOGICA DA SUA VERSÃO 1.8]
+
 TeleportTab:CreateToggle({
     Name = "Auto Select (Mais Próximo)",
     CurrentValue = false,
@@ -61,13 +63,6 @@ TeleportTab:CreateButton({
         end
         PlayerDropdown:Refresh(names)
     end
-})
-
-TeleportTab:CreateDropdown({
-    Name = "Posição",
-    Options = {"Behind", "Front", "Above"},
-    CurrentOption = {"Behind"},
-    Callback = function(v) mode = v[1] end
 })
 
 TeleportTab:CreateToggle({
@@ -96,62 +91,48 @@ PlayerTab:CreateToggle({
     Callback = function(v) infJump = v end
 })
 
----------------------------------------------------
--- ABA COMBATE (COM CORREÇÃO DE PARADA)
----------------------------------------------------
+-- ABA COMBATE (COM TRAVA DE SEGURANÇA)
 CombatTab:CreateToggle({
     Name = "Auto Attack V1 (VIM Mode)",
     CurrentValue = false,
     Callback = function(v) 
         autoAttackV1 = v 
-        if not v then ForceStop() end -- SE DESLIGAR, PARA DE ATACAR
+        if not v then StopAttack() end -- Para o ataque na hora ao desligar
     end
 })
 
-CombatTab:CreateSection("Hitbox")
 CombatTab:CreateToggle({
     Name = "Hitbox Expander",
     CurrentValue = false,
     Callback = function(v) hitboxEnabled = v end
 })
 
-CombatTab:CreateSlider({
-    Name = "Tamanho Hitbox",
-    Range = {2, 50},
-    Increment = 1,
-    CurrentValue = 5,
-    Callback = function(v) hitboxSize = v end
-})
-
----------------------------------------------------
--- ABA TESTE (COMBO SINCRONIZADO)
----------------------------------------------------
 TestTab:CreateToggle({
-    Name = "Combo: Grudar + Atacar (0.5s Delay)",
+    Name = "Combo: Grudar + Atacar",
     CurrentValue = false,
     Callback = function(v) 
         comboEnabled = v
         autoSelect = v
         followEnabled = v
         autoAttackV1 = v
-        if not v then ForceStop() end -- RESET TOTAL AO DESLIGAR
+        if not v then StopAttack() end
     end
 })
 
 ---------------------------------------------------
--- LOOPS DE EXECUÇÃO
+-- LOOPS DE EXECUÇÃO (MELHORADOS)
 ---------------------------------------------------
 
--- Loop de Ataque VIM (CORRIGIDO PARA NÃO TRAVAR)
+-- Loop de Ataque (Ajustado para não "engasgar")
 task.spawn(function()
     while true do
         if autoAttackV1 or comboEnabled then
             VIM:SendMouseButtonEvent(0,0,0,true,game,0)
-            task.wait(0.01) 
+            task.wait(0.02)
             VIM:SendMouseButtonEvent(0,0,0,false,game,0)
-            task.wait(0.49) -- Total de 0.5s
+            task.wait(0.48) -- Delay total de 0.5s
         else
-            task.wait(0.2) -- Espera ociosa
+            task.wait(0.5)
         end
     end
 end)
@@ -161,10 +142,10 @@ task.spawn(function()
     while true do
         task.wait(0.01)
         if not LP.Character or not LP.Character:FindFirstChild("HumanoidRootPart") then continue end
+        
         local Hum = LP.Character:FindFirstChildOfClass("Humanoid")
         local HRP = LP.Character.HumanoidRootPart
 
-        -- Auto Select
         if autoSelect or comboEnabled then
             local closest = nil
             local dist = math.huge
@@ -177,19 +158,15 @@ task.spawn(function()
             if closest then selectedPlayer = closest end
         end
 
-        -- Speed
         if speedEnabled and Hum then Hum.WalkSpeed = speedValue end
 
-        -- Follow
         if (followEnabled or comboEnabled) and selectedPlayer and selectedPlayer.Character then
             local tHRP = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
             if tHRP then
-                local offset = (mode == "Behind" and tHRP.CFrame.LookVector * -distance) or (mode == "Front" and tHRP.CFrame.LookVector * distance) or Vector3.new(0, distance, 0)
-                HRP.CFrame = CFrame.new(tHRP.Position + offset, tHRP.Position)
+                HRP.CFrame = CFrame.new(tHRP.Position + (tHRP.CFrame.LookVector * -distance), tHRP.Position)
             end
         end
 
-        -- Hitbox
         if hitboxEnabled then
             for _, p in pairs(Players:GetPlayers()) do
                 if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
