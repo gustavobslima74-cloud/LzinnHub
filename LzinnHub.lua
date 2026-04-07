@@ -5,6 +5,7 @@ local LP = Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
 local VIM = game:GetService("VirtualInputManager")
 
+-- VARIÁVEIS DE CONTROLE RESTAURADAS
 local selectedPlayer = nil
 local autoSelect = false
 local followEnabled = false
@@ -14,17 +15,17 @@ local speedEnabled = false
 local speedValue = 16
 local infJump = false
 local autoAttackV1 = false
-
--- Variáveis de Teste v1.6
-local autoAttackV6 = false
-local autoAttackV7 = false
 local hitboxEnabled = false
 local hitboxSize = 5
 local hitboxTransparency = 1.0
 
+-- Variáveis de Teste v1.7
+local autoAttackV6 = false
+local autoAttackV7 = false
+
 local Window = Rayfield:CreateWindow({
-    Name = "Lzinn Hub | v1.6",
-    LoadingTitle = "Lzinn Interface v1.6",
+    Name = "Lzinn Hub | v1.7",
+    LoadingTitle = "Lzinn Interface v1.7",
     LoadingSubtitle = "by Lzinn7",
     ConfigurationSaving = { Enabled = false }
 })
@@ -34,14 +35,82 @@ local PlayerTab = Window:CreateTab("Jogador", 4483362458)
 local CombatTab = Window:CreateTab("Combate", 4483362458)
 local TestTab = Window:CreateTab("Teste", 4483362458)
 
--- COMBATE
+---------------------------------------------------
+-- ABA TELEPORTE (RESTAURADA)
+---------------------------------------------------
+TeleportTab:CreateToggle({
+    Name = "Auto Select (Mais Próximo)",
+    CurrentValue = false,
+    Callback = function(v) autoSelect = v end
+})
+
+local PlayerDropdown = TeleportTab:CreateDropdown({
+    Name = "Selecionar Jogador",
+    Options = {"Nenhum"},
+    CurrentOption = {"Nenhum"},
+    Callback = function(Value)
+        selectedPlayer = Players:FindFirstChild(Value[1])
+    end,
+})
+
+TeleportTab:CreateButton({
+    Name = "Atualizar Lista",
+    Callback = function()
+        local names = {}
+        for _,p in pairs(Players:GetPlayers()) do
+            if p ~= LP then table.insert(names, p.Name) end
+        end
+        PlayerDropdown:Refresh(names)
+    end
+})
+
+TeleportTab:CreateDropdown({
+    Name = "Posição",
+    Options = {"Behind", "Front", "Above"},
+    CurrentOption = {"Behind"},
+    Callback = function(v) mode = v[1] end
+})
+
+TeleportTab:CreateToggle({
+    Name = "Grudar no Player",
+    CurrentValue = false,
+    Callback = function(v) followEnabled = v end
+})
+
+---------------------------------------------------
+-- ABA JOGADOR (RESTAURADA)
+---------------------------------------------------
+PlayerTab:CreateToggle({
+    Name = "Speed (Ligado/Desligado)",
+    CurrentValue = false,
+    Callback = function(v) speedEnabled = v end
+})
+
+PlayerTab:CreateSlider({
+    Name = "Velocidade",
+    Range = {16, 250},
+    Increment = 1,
+    CurrentValue = 16,
+    Callback = function(v) speedValue = v end
+})
+
+PlayerTab:CreateToggle({
+    Name = "Infinite Jump",
+    CurrentValue = false,
+    Callback = function(v) infJump = v end
+})
+
+---------------------------------------------------
+-- ABA COMBATE (RESTAURADA)
+---------------------------------------------------
 CombatTab:CreateToggle({
-    Name = "Auto Attack V1 (VIM - Bug Analogico)",
+    Name = "Auto Attack V1 (VIM Mode)",
     CurrentValue = false,
     Callback = function(v) autoAttackV1 = v end
 })
 
 CombatTab:CreateSection("Hitbox")
+
 CombatTab:CreateToggle({
     Name = "Hitbox Expander",
     CurrentValue = false,
@@ -49,15 +118,25 @@ CombatTab:CreateToggle({
 })
 
 CombatTab:CreateSlider({
-    Name = "Tamanho",
+    Name = "Tamanho Hitbox",
     Range = {2, 50},
     Increment = 1,
     CurrentValue = 5,
     Callback = function(v) hitboxSize = v end
 })
 
--- TESTE v1.6
-TestTab:CreateSection("Novos Métodos (Foco: Salvar Analógico)")
+CombatTab:CreateSlider({
+    Name = "Transparência",
+    Range = {0, 1},
+    Increment = 0.1,
+    CurrentValue = 1.0,
+    Callback = function(v) hitboxTransparency = v end
+})
+
+---------------------------------------------------
+-- ABA TESTE (MÉTODOS v1.7)
+---------------------------------------------------
+TestTab:CreateSection("Tentativas de salvar o Analógico")
 
 TestTab:CreateToggle({
     Name = "Auto Attack V6 (Signal Fire)",
@@ -71,13 +150,11 @@ TestTab:CreateToggle({
     Callback = function(v) autoAttackV7 = v end
 })
 
-TestTab:CreateSection("V6 e V7 não usam coordenadas de clique.")
-
 ---------------------------------------------------
--- LOOPS DE ATAQUE
+-- LOOPS E LÓGICA
 ---------------------------------------------------
 
--- V1 (O que você já usa)
+-- LOOP ATAQUE V1
 task.spawn(function()
     while true do
         task.wait(0.05)
@@ -89,8 +166,7 @@ task.spawn(function()
     end
 end)
 
--- V6 (Disparo de Sinais Internos)
--- Tenta 'puxar o gatilho' do botão sem simular toque
+-- LOOP ATAQUE V6
 task.spawn(function()
     while true do
         task.wait(0.05)
@@ -98,39 +174,27 @@ task.spawn(function()
             pcall(function()
                 local btn = LP.PlayerGui:FindFirstChild("ATK", true)
                 if btn then
-                    -- Dispara os eventos de clique sem o mouse estar lá
                     btn:Activate()
-                    for _, connection in pairs(getconnections(btn.MouseButton1Click)) do
-                        connection:Fire()
-                    end
-                    for _, connection in pairs(getconnections(btn.Activated)) do
-                        connection:Fire()
-                    end
+                    for _, c in pairs(getconnections(btn.MouseButton1Click)) do c:Fire() end
+                    for _, c in pairs(getconnections(btn.Activated)) do c:Fire() end
                 end
             end)
         end
     end
 end)
 
--- V7 (Simulação de Tecla Virtual)
--- Alguns botões mobile respondem a teclas fantasmas
+-- LOOP ATAQUE V7
 task.spawn(function()
     while true do
         task.wait(0.05)
         if autoAttackV7 then
-            VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-            task.wait(0.01)
-            VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-            -- Também tenta o clique da ferramenta
             local tool = LP.Character and LP.Character:FindFirstChildOfClass("Tool")
             if tool then tool:Activate() end
         end
     end
 end)
 
----------------------------------------------------
--- LÓGICA PRINCIPAL (SPEED / FOLLOW / HITBOX)
----------------------------------------------------
+-- LOOP PRINCIPAL (SPEED, FOLLOW, HITBOX, AUTOSELECT)
 task.spawn(function()
     while true do
         task.wait(0.01)
@@ -138,6 +202,7 @@ task.spawn(function()
         local Hum = LP.Character:FindFirstChildOfClass("Humanoid")
         local HRP = LP.Character:FindFirstChild("HumanoidRootPart")
 
+        -- Auto Select
         if autoSelect then
             local closest = nil
             local dist = math.huge
@@ -150,8 +215,10 @@ task.spawn(function()
             if closest then selectedPlayer = closest end
         end
 
+        -- Speed
         if speedEnabled and Hum then Hum.WalkSpeed = speedValue end
 
+        -- Follow
         if followEnabled and selectedPlayer and selectedPlayer.Character then
             local tHRP = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
             if tHRP and HRP then
@@ -160,6 +227,7 @@ task.spawn(function()
             end
         end
 
+        -- Hitbox
         if hitboxEnabled then
             for _, p in pairs(Players:GetPlayers()) do
                 if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
@@ -173,8 +241,11 @@ task.spawn(function()
     end
 end)
 
+-- Infinite Jump
 UIS.JumpRequest:Connect(function()
     if infJump and LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
         LP.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
     end
 end)
+
+Rayfield:Notify({Title = "Lzinn Hub", Content = "v1.7 Totalmente Restaurada!", Duration = 5})
