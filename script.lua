@@ -21,10 +21,12 @@ local infJump = false
 
 -- COMBAT VARS
 local autoAttackV1 = false
-local autoAttackV2 = false
 local hitboxEnabled = false
 local hitboxSize = 5
 local hitboxTransparency = 1.0
+
+-- TEST VARS
+local autoAttackV2 = false
 
 ---------------------------------------------------
 -- JANELA PRINCIPAL
@@ -39,6 +41,7 @@ local Window = Rayfield:CreateWindow({
 local TeleportTab = Window:CreateTab("Teleporte", 4483362458)
 local PlayerTab = Window:CreateTab("Jogador", 4483362458)
 local CombatTab = Window:CreateTab("Combate", 4483362458)
+local TestTab = Window:CreateTab("Teste", 4483362458)
 
 ---------------------------------------------------
 -- FUNÇÕES SUPORTE
@@ -124,20 +127,14 @@ PlayerTab:CreateToggle({
 })
 
 ---------------------------------------------------
--- ABA COMBATE (V1 e V2)
+-- ABA COMBATE
 ---------------------------------------------------
 CombatTab:CreateSection("Ataque Automático")
 
 CombatTab:CreateToggle({
-    Name = "Auto Attack V1 (VIM - Some Analógico)",
+    Name = "Auto Attack V1 (VIM Mode)",
     CurrentValue = false,
     Callback = function(v) autoAttackV1 = v end
-})
-
-CombatTab:CreateToggle({
-    Name = "Auto Attack V2 (Mobile - Não Some Analógico)",
-    CurrentValue = false,
-    Callback = function(v) autoAttackV2 = v end
 })
 
 CombatTab:CreateSection("Configurações de Hitbox")
@@ -165,10 +162,23 @@ CombatTab:CreateSlider({
 })
 
 ---------------------------------------------------
+-- ABA TESTE (V2 PARA TESTES)
+---------------------------------------------------
+TestTab:CreateSection("Laboratório de Ataque")
+
+TestTab:CreateToggle({
+    Name = "Auto Attack V2 (Mobile Fix)",
+    CurrentValue = false,
+    Callback = function(v) autoAttackV2 = v end
+})
+
+TestTab:CreateSection("O V2 usa a posição real do botão ATK.")
+
+---------------------------------------------------
 -- LOOPS DE EXECUÇÃO
 ---------------------------------------------------
 
--- LOOP AUTO ATAQUE V1 (Original VIM)
+-- LOOP V1
 task.spawn(function()
     while true do
         if autoAttackV1 then
@@ -182,35 +192,35 @@ task.spawn(function()
     end
 end)
 
--- LOOP AUTO ATAQUE V2 (NOVO - DISPARA O BOTÃO "ATK" DIRETAMENTE)
+-- LOOP V2 (TENTATIVA CORRIGIDA)
 task.spawn(function()
     while true do
         if autoAttackV2 then
             pcall(function()
                 local atkButton = LP.PlayerGui.MobileScr.ControlFrame.ATK
-                -- Simula o pressionamento do botão mobile
-                for _, connection in pairs(getconnections(atkButton.MouseButton1Click)) do
-                    connection:Fire()
-                end
-                for _, connection in pairs(getconnections(atkButton.Activated)) do
-                    connection:Fire()
+                if atkButton and atkButton.Visible then
+                    local pos = atkButton.AbsolutePosition
+                    local size = atkButton.AbsoluteSize
+                    -- Clica no centro do botão usando coordenadas absolutas
+                    VIM:SendMouseButtonEvent(pos.X + (size.X/2), pos.Y + (size.Y/2) + 36, 0, true, game, 0)
+                    task.wait(0.01)
+                    VIM:SendMouseButtonEvent(pos.X + (size.X/2), pos.Y + (size.Y/2) + 36, 0, false, game, 0)
                 end
             end)
-            task.wait(0.05) -- Velocidade do clique
+            task.wait(0.05)
         else
             task.wait(0.1)
         end
     end
 end)
 
--- PULO INFINITO
+-- LOOP PRINCIPAL (MOVIMENTO/PULO/HITBOX)
 UIS.JumpRequest:Connect(function()
     if infJump and LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
         LP.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
     end
 end)
 
--- LOOP PRINCIPAL
 task.spawn(function()
     while true do
         task.wait(0.01)
