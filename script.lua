@@ -32,9 +32,9 @@ local hitboxTransparency = 1.0
 -- JANELA PRINCIPAL
 ---------------------------------------------------
 local Window = Rayfield:CreateWindow({
-    Name = "Lzinn Hub | Mobile Edition",
+    Name = "Lzinn Hub",
     LoadingTitle = "Carregando Interface...",
-    LoadingSubtitle = "by Luiz"
+    LoadingSubtitle = "by Lzinn7"
 })
 
 -- ABAS
