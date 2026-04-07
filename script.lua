@@ -6,7 +6,6 @@ local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
 local VIM = game:GetService("VirtualInputManager")
-local VU = game:GetService("VirtualUser")
 
 -- VARIÁVEIS DE CONTROLE
 local selectedPlayer = nil
@@ -20,11 +19,8 @@ local speedEnabled = false
 local speedValue = 16
 local infJump = false
 
--- COMBAT/TEST VARS
+-- COMBAT VARS
 local autoAttackV1 = false
-local autoAttackV2 = false
-local autoAttackV3 = false
-local autoAttackV4 = false
 local hitboxEnabled = false
 local hitboxSize = 5
 local hitboxTransparency = 1.0
@@ -128,8 +124,18 @@ PlayerTab:CreateToggle({
 })
 
 ---------------------------------------------------
--- ABA COMBATE
+-- ABA COMBATE (V1 ADICIONADO AQUI)
 ---------------------------------------------------
+CombatTab:CreateSection("Ataque Automático")
+
+CombatTab:CreateToggle({
+    Name = "Auto Attack V1 (VIM Mode)",
+    CurrentValue = false,
+    Callback = function(v) autoAttackV1 = v end
+})
+
+CombatTab:CreateSection("Configurações de Hitbox")
+
 CombatTab:CreateToggle({
     Name = "Hitbox Expander",
     CurrentValue = false,
@@ -153,41 +159,33 @@ CombatTab:CreateSlider({
 })
 
 ---------------------------------------------------
--- ABA TESTE (VERSÕES DE AUTO ATAQUE)
+-- ABA TESTE (SCANNER DE BOTÕES)
 ---------------------------------------------------
-TestTab:CreateSection("Laboratório de Ataque")
+TestTab:CreateSection("Scanner de Interface Mobile")
 
-TestTab:CreateToggle({
-    Name = "V1: Original (VIM Mode)",
-    CurrentValue = false,
-    Callback = function(v) autoAttackV1 = v end
+TestTab:CreateButton({
+    Name = "Escanear Botões da Tela (Ver Console F9)",
+    Callback = function()
+        print("--- ESCANEANDO BOTÕES ATIVOS ---")
+        local gui = LP:FindFirstChildOfClass("PlayerGui")
+        if gui then
+            for _, v in pairs(gui:GetDescendants()) do
+                if v:IsA("TextButton") or v:IsA("ImageButton") then
+                    if v.Visible and v.AbsoluteSize.X > 0 then
+                        print("Botão Encontrado: " .. v.Name .. " | Caminho: " .. v:GetFullName())
+                    end
+                end
+            end
+        end
+        Rayfield:Notify({Title = "Scanner", Content = "Lista gerada no Console (aperte F9)", Duration = 5})
+    end
 })
-
-TestTab:CreateToggle({
-    Name = "V2: VU Click",
-    CurrentValue = false,
-    Callback = function(v) autoAttackV2 = v end
-})
-
-TestTab:CreateToggle({
-    Name = "V3: Activate Internal",
-    CurrentValue = false,
-    Callback = function(v) autoAttackV3 = v end
-})
-
-TestTab:CreateToggle({
-    Name = "V4: Remote Sniper (Novo)",
-    CurrentValue = false,
-    Callback = function(v) autoAttackV4 = v end
-})
-
-TestTab:CreateSection("O V4 tenta 'caçar' o evento da arma.")
 
 ---------------------------------------------------
 -- LOOPS DE EXECUÇÃO
 ---------------------------------------------------
 
--- LOOP V1 (Original VIM)
+-- LOOP AUTO ATAQUE V1
 task.spawn(function()
     while true do
         if autoAttackV1 then
@@ -201,53 +199,7 @@ task.spawn(function()
     end
 end)
 
--- LOOP V2 (VU)
-task.spawn(function()
-    while true do
-        if autoAttackV2 then
-            VU:Button1Down(Vector2.new(0,0))
-            task.wait(0.01)
-            VU:Button1Up(Vector2.new(0,0))
-            task.wait(0.04)
-        else
-            task.wait(0.1)
-        end
-    end
-end)
-
--- LOOP V3 (Internal)
-task.spawn(function()
-    while true do
-        if autoAttackV3 then
-            local tool = LP.Character and LP.Character:FindFirstChildOfClass("Tool")
-            if tool then tool:Activate() end
-            task.wait(0.1)
-        else
-            task.wait(0.1)
-        end
-    end
-end)
-
--- LOOP V4 (Remote Event Sniper)
-task.spawn(function()
-    while true do
-        if autoAttackV4 then
-            local tool = LP.Character and LP.Character:FindFirstChildOfClass("Tool")
-            if tool then
-                for _, obj in pairs(tool:GetDescendants()) do
-                    if obj:IsA("RemoteEvent") then
-                        obj:FireServer()
-                    end
-                end
-            end
-            task.wait(0.1)
-        else
-            task.wait(0.1)
-        end
-    end
-end)
-
--- LOOP PULO INFINITO
+-- PULO INFINITO
 UIS.JumpRequest:Connect(function()
     if infJump and LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
         LP.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
@@ -292,9 +244,3 @@ task.spawn(function()
         end
     end
 end)
-
-Rayfield:Notify({
-    Title = "Lzinn Hub",
-    Content = "Menu Completo com V1 até V4!",
-    Duration = 5
-})
