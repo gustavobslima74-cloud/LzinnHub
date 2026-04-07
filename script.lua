@@ -108,4 +108,108 @@ CombatTab:CreateToggle({
 
 CombatTab:CreateSlider({
     Name = "Tamanho Hitbox",
-    Range = {2
+    Range = {2, 50},
+    Increment = 1,
+    CurrentValue = 5,
+    Callback = function(v) hitboxSize = v end
+})
+
+CombatTab:CreateSlider({
+    Name = "Transparência",
+    Range = {0, 1},
+    Increment = 0.1,
+    CurrentValue = 1.0,
+    Callback = function(v) hitboxTransparency = v end
+})
+
+-- TESTE
+TestTab:CreateToggle({
+    Name = "Auto Attack V2 (Touch Simulation)",
+    CurrentValue = false,
+    Callback = function(v) autoAttackV2 = v end
+})
+
+-- LOOP V1
+task.spawn(function()
+    while true do
+        task.wait(0.01)
+        if autoAttackV1 then
+            VIM:SendMouseButtonEvent(0,0,0,true,game,0)
+            task.wait(0.01)
+            VIM:SendMouseButtonEvent(0,0,0,false,game,0)
+            task.wait(0.04)
+        end
+    end
+end)
+
+-- LOOP V2 (CORREÇÃO ANALÓGICO: SIMULAÇÃO DE TOUCH)
+task.spawn(function()
+    while true do
+        task.wait(0.01)
+        if autoAttackV2 then
+            pcall(function()
+                local atkButton = LP.PlayerGui:FindFirstChild("ATK", true) or LP.PlayerGui.MobileScr.ControlFrame.ATK
+                if atkButton then
+                    -- Usamos VirtualInputManager mas com evento de TOUCH para não sumir analógico
+                    local pos = atkButton.AbsolutePosition
+                    local size = atkButton.AbsoluteSize
+                    local centerX = pos.X + (size.X/2)
+                    local centerY = pos.Y + (size.Y/2) + 50
+                    
+                    VIM:SendTouchEvent(centerX, centerY, 0, 0) -- 0 = State Pressed
+                    task.wait(0.02)
+                    VIM:SendTouchEvent(centerX, centerY, 0, 1) -- 1 = State Released
+                end
+            end)
+            task.wait(0.05)
+        end
+    end
+end)
+
+UIS.JumpRequest:Connect(function()
+    if infJump and LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
+        LP.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+    end
+end)
+
+task.spawn(function()
+    while true do
+        task.wait(0.01)
+        if not LP.Character then continue end
+        local Hum = LP.Character:FindFirstChildOfClass("Humanoid")
+        local HRP = LP.Character:FindFirstChild("HumanoidRootPart")
+
+        if autoSelect then
+            local closest = nil
+            local dist = math.huge
+            for _,p in pairs(Players:GetPlayers()) do
+                if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                    local d = (LP.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude
+                    if d < dist then dist = d closest = p end
+                end
+            end
+            if closest then selectedPlayer = closest end
+        end
+
+        if speedEnabled and Hum then Hum.WalkSpeed = speedValue end
+
+        if followEnabled and selectedPlayer and selectedPlayer.Character then
+            local tHRP = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if tHRP and HRP then
+                local offset = (mode == "Behind" and tHRP.CFrame.LookVector * -distance) or (mode == "Front" and tHRP.CFrame.LookVector * distance) or Vector3.new(0, distance, 0)
+                HRP.CFrame = CFrame.new(tHRP.Position + offset, tHRP.Position)
+            end
+        end
+
+        if hitboxEnabled then
+            for _, p in pairs(Players:GetPlayers()) do
+                if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                    local pRoot = p.Character.HumanoidRootPart
+                    pRoot.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+                    pRoot.Transparency = hitboxTransparency
+                    pRoot.CanCollide = false
+                end
+            end
+        end
+    end
+end)
