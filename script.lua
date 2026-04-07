@@ -1,60 +1,60 @@
--- LOAD
+-- LOAD RAYFIELD
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 -- SERVICES
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
--- VARS
+-- VARIÁVEIS
 local selectedPlayer = nil
 local autoSelect = false
 local followEnabled = false
 local distance = 3
 local mode = "Behind"
 
+-- PLAYER VARS
 local speedEnabled = false
 local speedValue = 16
 local infJump = false
 
+-- COMBAT VARS
+local hitboxEnabled = false
+local hitboxSize = 5
+local hitboxTransparency = 1.0
 local aimbot = false
 local autoAttack = false
 local autoFarm = false
-local attackDelay = 0.6
-
-local hitboxSize = 5
-local hitboxTransparency = 1
-
-local highlight = nil
 
 ---------------------------------------------------
 -- WINDOW
 ---------------------------------------------------
 local Window = Rayfield:CreateWindow({
-   Name = "Lzinn Hub",
-   LoadingTitle = "Lzinn Hub",
-   LoadingSubtitle = "by Luiz"
+    Name = "Lzinn Hub | Mobile Optimized",
+    LoadingTitle = "Lzinn Interface",
+    LoadingSubtitle = "by Luiz"
 })
 
+-- ABAS REORGANIZADAS
 local TeleportTab = Window:CreateTab("Teleporte", 4483362458)
 local PlayerTab = Window:CreateTab("Jogador", 4483362458)
 local CombatTab = Window:CreateTab("Combate", 4483362458)
 
 ---------------------------------------------------
--- FUNÇÕES
+-- FUNÇÕES AUXILIARES
 ---------------------------------------------------
-local function getPlayers()
-    local t = {}
+local function getPlayerNames()
+    local list = {}
     for _,p in pairs(Players:GetPlayers()) do
-        if p ~= LP then table.insert(t, p.Name) end
+        if p ~= LP then table.insert(list, p.Name) end
     end
-    return t
+    return list
 end
 
 local function getClosestPlayer()
-    local closest, dist = nil, math.huge
-    if not LP.Character or not LP.Character:FindFirstChild("HumanoidRootPart") then return nil end
-
+    local closest = nil
+    local dist = math.huge
     for _,p in pairs(Players:GetPlayers()) do
         if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
             local d = (LP.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude
@@ -67,229 +67,175 @@ local function getClosestPlayer()
     return closest
 end
 
-local function applyHighlight(player)
-    if highlight then highlight:Destroy() end
-    if player and player.Character then
-        highlight = Instance.new("Highlight")
-        highlight.Parent = player.Character
-    end
-end
-
 ---------------------------------------------------
--- TELEPORTE (PRINCIPAL)
+-- ABA TELEPORTE
 ---------------------------------------------------
+TeleportTab:CreateToggle({
+    Name = "Auto Select (Mais Próximo)",
+    CurrentValue = false,
+    Callback = function(v) autoSelect = v end
+})
 
-local dropdown = TeleportTab:CreateDropdown({
-   Name = "Selecionar Player",
-   Options = getPlayers(),
-   CurrentOption = {},
-   Callback = function(v)
-      autoSelect = false
-      selectedPlayer = Players:FindFirstChild(v[1])
-      applyHighlight(selectedPlayer)
-   end
+local PlayerDropdown = TeleportTab:CreateDropdown({
+    Name = "Selecionar Jogador",
+    Options = getPlayerNames(),
+    CurrentOption = {},
+    Callback = function(Value)
+        selectedPlayer = Players:FindFirstChild(Value[1])
+    end,
 })
 
 TeleportTab:CreateButton({
-   Name = "Atualizar Lista",
-   Callback = function()
-      dropdown:Refresh(getPlayers())
-   end
-})
-
-TeleportTab:CreateToggle({
-   Name = "Auto Select",
-   CurrentValue = false,
-   Callback = function(v)
-      autoSelect = v
-   end
+    Name = "Atualizar Lista",
+    Callback = function() PlayerDropdown:Refresh(getPlayerNames()) end
 })
 
 TeleportTab:CreateDropdown({
-   Name = "Posição",
-   Options = {"Behind","Front"},
-   CurrentOption = {"Behind"},
-   Callback = function(v)
-      mode = v[1]
-   end
+    Name = "Posição do Teleporte",
+    Options = {"Behind", "Front", "Above"},
+    CurrentOption = {"Behind"},
+    Callback = function(v) mode = v[1] end
 })
 
 TeleportTab:CreateToggle({
-   Name = "Grudar",
-   CurrentValue = false,
-   Callback = function(v)
-      followEnabled = v
-   end
+    Name = "Grudar no Player (Teleport Loop)",
+    CurrentValue = false,
+    Callback = function(v) followEnabled = v end
 })
 
 ---------------------------------------------------
--- JOGADOR
+-- ABA JOGADOR
 ---------------------------------------------------
-
 PlayerTab:CreateToggle({
-   Name = "Speed",
-   CurrentValue = false,
-   Callback = function(v)
-      speedEnabled = v
-   end
+    Name = "Speed (Ligado/Desligado)",
+    CurrentValue = false,
+    Callback = function(v) speedEnabled = v end
 })
 
 PlayerTab:CreateSlider({
-   Name = "Velocidade",
-   Range = {16,100},
-   Increment = 1,
-   CurrentValue = 16,
-   Callback = function(v)
-      speedValue = v
-   end
+    Name = "Velocidade",
+    Range = {16, 200},
+    Increment = 1,
+    CurrentValue = 16,
+    Callback = function(v) speedValue = v end
 })
 
 PlayerTab:CreateToggle({
-   Name = "Infinite Jump",
-   CurrentValue = false,
-   Callback = function(v)
-      infJump = v
-   end
+    Name = "Infinite Jump",
+    CurrentValue = false,
+    Callback = function(v) infJump = v end
 })
 
 ---------------------------------------------------
--- COMBATE
+-- ABA COMBATE
 ---------------------------------------------------
-
 CombatTab:CreateToggle({
-   Name = "Aimbot",
-   CurrentValue = false,
-   Callback = function(v)
-      aimbot = v
-   end
-})
-
-CombatTab:CreateSlider({
-   Name = "Hitbox Size",
-   Range = {2,20},
-   Increment = 1,
-   CurrentValue = 5,
-   Callback = function(v)
-      hitboxSize = v
-   end
-})
-
-CombatTab:CreateSlider({
-   Name = "Hitbox Transparência",
-   Range = {0.1,1},
-   Increment = 0.1,
-   CurrentValue = 1,
-   Callback = function(v)
-      hitboxTransparency = v
-   end
+    Name = "Aimbot",
+    CurrentValue = false,
+    Callback = function(v) aimbot = v end
 })
 
 CombatTab:CreateToggle({
-   Name = "Auto Attack",
-   CurrentValue = false,
-   Callback = function(v)
-      autoAttack = v
-   end
+    Name = "Hitbox Expander",
+    CurrentValue = false,
+    Callback = function(v) hitboxEnabled = v end
 })
 
 CombatTab:CreateSlider({
-   Name = "Velocidade do Attack",
-   Range = {0.2,0.6},
-   Increment = 0.1,
-   CurrentValue = 0.6,
-   Callback = function(v)
-      attackDelay = v
-   end
+    Name = "Tamanho Hitbox",
+    Range = {2, 50},
+    Increment = 1,
+    CurrentValue = 5,
+    Callback = function(v) hitboxSize = v end
+})
+
+CombatTab:CreateSlider({
+    Name = "Transparência (1.0 = Invisível)",
+    Range = {0, 1},
+    Increment = 0.1,
+    CurrentValue = 1.0,
+    Callback = function(v) hitboxTransparency = v end
 })
 
 CombatTab:CreateToggle({
-   Name = "Auto Farm",
-   CurrentValue = false,
-   Callback = function(v)
-      autoFarm = v
-      if v then followEnabled = true end
-   end
+    Name = "Auto Atack",
+    CurrentValue = false,
+    Callback = function(v) autoAttack = v end
+})
+
+CombatTab:CreateToggle({
+    Name = "Auto Farm (Gruda + Ataca)",
+    CurrentValue = false,
+    Callback = function(v) autoFarm = v end
 })
 
 ---------------------------------------------------
--- INFINITE JUMP
+-- LÓGICA DE EXECUÇÃO (LOOPS)
 ---------------------------------------------------
+
+-- Infinite Jump
 UIS.JumpRequest:Connect(function()
-    if infJump and LP.Character and LP.Character:FindFirstChild("Humanoid") then
-        LP.Character.Humanoid:ChangeState("Jumping")
+    if infJump and LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
+        LP.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
     end
 end)
 
----------------------------------------------------
--- AUTO ATTACK LOOP (CORRIGIDO)
----------------------------------------------------
 task.spawn(function()
     while true do
-        if autoAttack or autoFarm then
-            if LP.Character then
-                local tool = LP.Character:FindFirstChildOfClass("Tool")
-                if tool then
-                    tool:Activate()
-                end
-            end
-            task.wait(attackDelay)
-        else
-            task.wait(0.1)
-        end
-    end
-end)
+        task.wait(0.01) -- Loop mais rápido para precisão
+        
+        if not LP.Character or not LP.Character:FindFirstChild("HumanoidRootPart") then continue end
+        local HRP = LP.Character.HumanoidRootPart
+        local Hum = LP.Character:FindFirstChildOfClass("Humanoid")
 
----------------------------------------------------
--- LOOP PRINCIPAL
----------------------------------------------------
-task.spawn(function()
-    while true do
-        task.wait(0.05)
-
-        if not LP.Character then continue end
-
-        local HRP = LP.Character:FindFirstChild("HumanoidRootPart")
-        local humanoid = LP.Character:FindFirstChild("Humanoid")
-
-        -- AUTO SELECT / FARM
+        -- Auto Select Logic
         if autoSelect or autoFarm then
-            local closest = getClosestPlayer()
-            if closest ~= selectedPlayer then
-                selectedPlayer = closest
-                applyHighlight(selectedPlayer)
-            end
+            selectedPlayer = getClosestPlayer()
         end
 
-        -- SPEED
-        if speedEnabled and humanoid then
-            humanoid.WalkSpeed = speedValue
+        -- Speed Logic
+        if speedEnabled and Hum then
+            Hum.WalkSpeed = speedValue
         end
 
-        -- FOLLOW
-        if followEnabled and selectedPlayer and selectedPlayer.Character then
+        -- Follow / Auto Farm Movement
+        if (followEnabled or autoFarm) and selectedPlayer and selectedPlayer.Character then
             local targetHRP = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if targetHRP and HRP then
-                local dir = targetHRP.CFrame.LookVector
-                local offset = (mode == "Behind") and (dir * -distance) or (dir * distance)
+            if targetHRP then
+                local offset
+                if mode == "Behind" then offset = targetHRP.CFrame.LookVector * -distance
+                elseif mode == "Front" then offset = targetHRP.CFrame.LookVector * distance
+                else offset = Vector3.new(0, distance, 0) end
+                
                 HRP.CFrame = CFrame.new(targetHRP.Position + offset, targetHRP.Position)
             end
         end
 
-        -- AIMBOT
+        -- Aimbot Logic
         if aimbot and selectedPlayer and selectedPlayer.Character then
             local targetHRP = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if targetHRP and HRP then
-                HRP.CFrame = CFrame.new(HRP.Position, targetHRP.Position)
+            if targetHRP then
+                HRP.CFrame = CFrame.new(HRP.Position, Vector3.new(targetHRP.Position.X, HRP.Position.Y, targetHRP.Position.Z))
             end
         end
 
-        -- HITBOX
-        for _,p in pairs(Players:GetPlayers()) do
-            if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                local part = p.Character.HumanoidRootPart
-                part.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-                part.Transparency = hitboxTransparency
-                part.CanCollide = false
+        -- Auto Attack / Farm Logic (Correção de Ferramenta)
+        if (autoAttack or autoFarm) then
+            local tool = LP.Character:FindFirstChildOfClass("Tool")
+            if tool then
+                tool:Activate()
+            end
+        end
+
+        -- Hitbox Expander Logic
+        if hitboxEnabled then
+            for _, p in pairs(Players:GetPlayers()) do
+                if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                    local hrp = p.Character.HumanoidRootPart
+                    hrp.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+                    hrp.Transparency = hitboxTransparency
+                    hrp.CanCollide = false
+                end
             end
         end
     end
