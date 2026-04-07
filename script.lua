@@ -1,3 +1,9 @@
+--[[
+    Lzinn Hub - Linha de Versões:
+    v1.0: Base (Teleporte, Jogador, Combate V1, Hitbox)
+    v1.1: Adicionada Aba Teste e Auto Attack V2 (Mobile Position Fix)
+]]
+
 -- LOAD RAYFIELD
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
@@ -25,16 +31,19 @@ local hitboxEnabled = false
 local hitboxSize = 5
 local hitboxTransparency = 1.0
 
--- TEST VARS
+-- TEST VARS (Para v1.1)
 local autoAttackV2 = false
 
 ---------------------------------------------------
 -- JANELA PRINCIPAL
 ---------------------------------------------------
 local Window = Rayfield:CreateWindow({
-    Name = "Lzinn Hub",
-    LoadingTitle = "Carregando Interface...",
-    LoadingSubtitle = "by Lzinn7"
+    Name = "Lzinn Hub | v1.1", 
+    LoadingTitle = "Lzinn Interface v1.1",
+    LoadingSubtitle = "by Lzinn7",
+    ConfigurationSaving = {
+        Enabled = false
+    }
 })
 
 -- ABAS
@@ -72,8 +81,8 @@ TeleportTab:CreateToggle({
 
 local PlayerDropdown = TeleportTab:CreateDropdown({
     Name = "Selecionar Jogador",
-    Options = {},
-    CurrentOption = {},
+    Options = {"Nenhum"},
+    CurrentOption = {"Nenhum"},
     Callback = function(Value)
         selectedPlayer = Players:FindFirstChild(Value[1])
     end,
@@ -129,7 +138,7 @@ PlayerTab:CreateToggle({
 ---------------------------------------------------
 -- ABA COMBATE
 ---------------------------------------------------
-CombatTab:CreateSection("Ataque Automático")
+CombatTab:CreateSection("Ataque Atual")
 
 CombatTab:CreateToggle({
     Name = "Auto Attack V1 (VIM Mode)",
@@ -137,7 +146,7 @@ CombatTab:CreateToggle({
     Callback = function(v) autoAttackV1 = v end
 })
 
-CombatTab:CreateSection("Configurações de Hitbox")
+CombatTab:CreateSection("Hitbox")
 
 CombatTab:CreateToggle({
     Name = "Hitbox Expander",
@@ -154,7 +163,7 @@ CombatTab:CreateSlider({
 })
 
 CombatTab:CreateSlider({
-    Name = "Transparência (1.0 = Invisível)",
+    Name = "Transparência",
     Range = {0, 1},
     Increment = 0.1,
     CurrentValue = 1.0,
@@ -162,20 +171,20 @@ CombatTab:CreateSlider({
 })
 
 ---------------------------------------------------
--- ABA TESTE (V2 PARA TESTES)
+-- ABA TESTE (FUTURA v1.2)
 ---------------------------------------------------
-TestTab:CreateSection("Laboratório de Ataque")
+TestTab:CreateSection("Laboratório Mobile")
 
 TestTab:CreateToggle({
-    Name = "Auto Attack V2 (Mobile Fix)",
+    Name = "Auto Attack V2 (Botão ATK)",
     CurrentValue = false,
     Callback = function(v) autoAttackV2 = v end
 })
 
-TestTab:CreateSection("O V2 usa a posição real do botão ATK.")
+TestTab:CreateSection("Se o V2 funcionar, ele vira oficial na v1.2")
 
 ---------------------------------------------------
--- LOOPS DE EXECUÇÃO
+-- LOOPS
 ---------------------------------------------------
 
 -- LOOP V1
@@ -192,19 +201,18 @@ task.spawn(function()
     end
 end)
 
--- LOOP V2 (TENTATIVA CORRIGIDA)
+-- LOOP V2
 task.spawn(function()
     while true do
         if autoAttackV2 then
             pcall(function()
-                local atkButton = LP.PlayerGui.MobileScr.ControlFrame.ATK
-                if atkButton and atkButton.Visible then
+                local atkButton = LP.PlayerGui:FindFirstChild("ATK", true)
+                if atkButton then
                     local pos = atkButton.AbsolutePosition
                     local size = atkButton.AbsoluteSize
-                    -- Clica no centro do botão usando coordenadas absolutas
-                    VIM:SendMouseButtonEvent(pos.X + (size.X/2), pos.Y + (size.Y/2) + 36, 0, true, game, 0)
+                    VIM:SendMouseButtonEvent(pos.X + (size.X/2), pos.Y + (size.Y/2) + 50, 0, true, game, 0)
                     task.wait(0.01)
-                    VIM:SendMouseButtonEvent(pos.X + (size.X/2), pos.Y + (size.Y/2) + 36, 0, false, game, 0)
+                    VIM:SendMouseButtonEvent(pos.X + (size.X/2), pos.Y + (size.Y/2) + 50, 0, false, game, 0)
                 end
             end)
             task.wait(0.05)
@@ -214,7 +222,7 @@ task.spawn(function()
     end
 end)
 
--- LOOP PRINCIPAL (MOVIMENTO/PULO/HITBOX)
+-- LOOP PRINCIPAL
 UIS.JumpRequest:Connect(function()
     if infJump and LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
         LP.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
@@ -225,36 +233,4 @@ task.spawn(function()
     while true do
         task.wait(0.01)
         if not LP.Character then continue end
-        
-        local Hum = LP.Character:FindFirstChildOfClass("Humanoid")
-        local HRP = LP.Character:FindFirstChild("HumanoidRootPart")
-
-        if autoSelect then
-            local closest = getClosestPlayer()
-            if closest then selectedPlayer = closest end
-        end
-
-        if speedEnabled and Hum then Hum.WalkSpeed = speedValue end
-
-        if followEnabled and selectedPlayer and selectedPlayer.Character then
-            local tHRP = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if tHRP and HRP then
-                local offset = (mode == "Behind" and tHRP.CFrame.LookVector * -distance) or 
-                               (mode == "Front" and tHRP.CFrame.LookVector * distance) or 
-                               Vector3.new(0, distance, 0)
-                HRP.CFrame = CFrame.new(tHRP.Position + offset, tHRP.Position)
-            end
-        end
-
-        if hitboxEnabled then
-            for _, p in pairs(Players:GetPlayers()) do
-                if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                    local pRoot = p.Character.HumanoidRootPart
-                    pRoot.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-                    pRoot.Transparency = hitboxTransparency
-                    pRoot.CanCollide = false
-                end
-            end
-        end
-    end
-end)
+        local Hum = LP.Character:FindFirstChildOfClass("Human
