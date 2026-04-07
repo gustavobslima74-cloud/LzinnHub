@@ -21,7 +21,7 @@ local speedValue = 16
 local infJump = false
 
 -- COMBAT/TEST VARS
-local autoAttackV1 = false
+local autoAttackV1 = false -- Esta é a variável que o botão vai controlar
 local autoAttackV2 = false
 local autoAttackV3 = false
 local hitboxEnabled = false
@@ -157,19 +157,21 @@ CombatTab:CreateSlider({
 TestTab:CreateSection("Laboratório de Ataque")
 
 TestTab:CreateToggle({
-    Name = "V1: Original (Funciona / Bug Analogico)",
+    Name = "V1: Original (VIM Mode)",
     CurrentValue = false,
-    Callback = function(v) autoAttackV1 = v end
+    Callback = function(v) 
+        autoAttackV1 = v -- Agora o botão controla o loop corretamente
+    end
 })
 
 TestTab:CreateToggle({
-    Name = "V2: VU (Tentativa s/ Bug)",
+    Name = "V2: VU Click (Mobile Safe?)",
     CurrentValue = false,
     Callback = function(v) autoAttackV2 = v end
 })
 
 TestTab:CreateToggle({
-    Name = "V3: Activate Internal (Leve)",
+    Name = "V3: Activate Internal",
     CurrentValue = false,
     Callback = function(v) autoAttackV3 = v end
 })
@@ -178,21 +180,22 @@ TestTab:CreateToggle({
 -- LOOPS DE EXECUÇÃO
 ---------------------------------------------------
 
--- LOOP V1 (O que você mandou, usando VirtualInputManager)
+-- LOOP V1 (O CÓDIGO QUE VOCÊ MANDOU)
 task.spawn(function()
     while true do
         if autoAttackV1 then
+            -- Exatamente o seu código do VIM
             VIM:SendMouseButtonEvent(0,0,0,true,game,0)
             task.wait(0.01)
             VIM:SendMouseButtonEvent(0,0,0,false,game,0)
-            task.wait(0.04)
+            task.wait(0.04) 
         else
             task.wait(0.1)
         end
     end
 end)
 
--- LOOP V2 (Usando VirtualUser para tentar salvar o analógico)
+-- LOOP V2 (Tentativa de clique sem sumir analógico)
 task.spawn(function()
     while true do
         if autoAttackV2 then
@@ -206,7 +209,7 @@ task.spawn(function()
     end
 end)
 
--- LOOP V3 (Tentativa direta na ferramenta)
+-- LOOP V3 (Ativação interna)
 task.spawn(function()
     while true do
         if autoAttackV3 then
@@ -224,7 +227,7 @@ UIS.JumpRequest:Connect(function()
     end
 end)
 
--- LOOP PRINCIPAL
+-- LOOP PRINCIPAL (MOVIMENTAÇÃO E HITBOX)
 task.spawn(function()
     while true do
         task.wait(0.01)
@@ -262,3 +265,9 @@ task.spawn(function()
         end
     end
 end)
+
+Rayfield:Notify({
+    Title = "Lzinn Hub",
+    Content = "V1 Corrigido e pronto!",
+    Duration = 5
+})
