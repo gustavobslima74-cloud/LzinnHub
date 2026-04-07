@@ -81,6 +81,40 @@ end
 -- COMBAT
 ---------------------------------------------------
 
+local playerList = {}
+
+local function getPlayerNames()
+    local list = {}
+    for _,p in pairs(Players:GetPlayers()) do
+        if p ~= LP then
+            table.insert(list, p.Name)
+        end
+    end
+    return list
+end
+
+-- CRIAR DROPDOWN
+local PlayerDropdown = CombatTab:CreateDropdown({
+   Name = "Selecionar Player",
+   Options = getPlayerNames(),
+   CurrentOption = {},
+   MultipleOptions = false,
+   Flag = "PlayerSelect",
+   Callback = function(Value)
+        autoSelect = false
+        local name = Value[1]
+        selectedPlayer = Players:FindFirstChild(name)
+        applyHighlight(selectedPlayer)
+   end,
+})
+
+CombatTab:CreateButton({
+   Name = "Atualizar Lista de Players",
+   Callback = function()
+        PlayerDropdown:Refresh(getPlayerNames())
+   end
+})
+
 -- AUTO SELECT
 CombatTab:CreateToggle({
    Name = "Auto Select Player",
