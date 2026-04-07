@@ -20,7 +20,7 @@ local hitboxSize = 5
 local hitboxTransparency = 1.0
 
 local Window = Rayfield:CreateWindow({
-    Name = "Lzinn Hub | v1.2",
+    Name = "Lzinn Hub | v1.3",
     LoadingTitle = "Lzinn Interface",
     LoadingSubtitle = "by Lzinn7"
 })
@@ -122,9 +122,9 @@ CombatTab:CreateSlider({
     Callback = function(v) hitboxTransparency = v end
 })
 
--- TESTE
+-- TESTE (LÓGICA NOVA v1.3)
 TestTab:CreateToggle({
-    Name = "Auto Attack V2 (Touch Simulation)",
+    Name = "Auto Attack V2 (Direct Signal)",
     CurrentValue = false,
     Callback = function(v) autoAttackV2 = v end
 })
@@ -142,7 +142,7 @@ task.spawn(function()
     end
 end)
 
--- LOOP V2 (CORREÇÃO ANALÓGICO: SIMULAÇÃO DE TOUCH)
+-- LOOP V2 (SINAL DIRETO - NÃO AFETA ANALÓGICO)
 task.spawn(function()
     while true do
         task.wait(0.01)
@@ -150,15 +150,16 @@ task.spawn(function()
             pcall(function()
                 local atkButton = LP.PlayerGui:FindFirstChild("ATK", true) or LP.PlayerGui.MobileScr.ControlFrame.ATK
                 if atkButton then
-                    -- Usamos VirtualInputManager mas com evento de TOUCH para não sumir analógico
-                    local pos = atkButton.AbsolutePosition
-                    local size = atkButton.AbsoluteSize
-                    local centerX = pos.X + (size.X/2)
-                    local centerY = pos.Y + (size.Y/2) + 50
-                    
-                    VIM:SendTouchEvent(centerX, centerY, 0, 0) -- 0 = State Pressed
-                    task.wait(0.02)
-                    VIM:SendTouchEvent(centerX, centerY, 0, 1) -- 1 = State Released
+                    -- Simula o evento de ativação do botão diretamente no código do jogo
+                    for _, connection in pairs(getconnections(atkButton.MouseButton1Down)) do
+                        connection:Fire()
+                    end
+                    for _, connection in pairs(getconnections(atkButton.MouseButton1Click)) do
+                        connection:Fire()
+                    end
+                    for _, connection in pairs(getconnections(atkButton.Activated)) do
+                        connection:Fire()
+                    end
                 end
             end)
             task.wait(0.05)
