@@ -4,7 +4,6 @@ local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
 local VIM = game:GetService("VirtualInputManager")
-local RunService = game:GetService("RunService")
 
 -- VARIÁVEIS
 local selectedPlayer = nil
@@ -19,19 +18,17 @@ local autoAttackV1 = false
 local hitboxEnabled = false
 local hitboxSize = 5
 local hitboxTransparency = 1.0
-
--- Variável Combo
 local comboEnabled = false
 
--- Criar Highlight Global
+-- Criar Highlight Global RGB
 local highlight = Instance.new("Highlight")
 highlight.Name = "LzinnHighlight"
 highlight.FillTransparency = 0.5
 highlight.OutlineTransparency = 0
 
 local Window = Rayfield:CreateWindow({
-    Name = "Lzinn Hub | v1.8",
-    LoadingTitle = "Lzinn Interface v1.8",
+    Name = "Lzinn Hub | v1.9",
+    LoadingTitle = "Lzinn Interface v1.9",
     LoadingSubtitle = "by Lzinn7",
     ConfigurationSaving = { Enabled = false }
 })
@@ -156,12 +153,12 @@ CombatTab:CreateSlider({
 })
 
 ---------------------------------------------------
--- ABA TESTE (NOVO COMBO)
+-- ABA TESTE (COMBO SINCRONIZADO)
 ---------------------------------------------------
 TestTab:CreateSection("Sincronização Especial")
 
 TestTab:CreateToggle({
-    Name = "Combo: Grudar + Atacar",
+    Name = "Combo: Grudar + Atacar (0.5s Delay)",
     CurrentValue = false,
     Callback = function(v) 
         comboEnabled = v
@@ -171,33 +168,31 @@ TestTab:CreateToggle({
         
         Rayfield:Notify({
             Title = "Modo Combo",
-            Content = v and "Sincronização Ativada!" or "Sincronização Desativada!",
+            Content = v and "Ativado com delay de 500ms!" or "Desativado!",
             Duration = 3
         })
     end
 })
 
-TestTab:CreateSection("Isso ativa Auto Select, Grudar e VIM simultaneamente.")
-
 ---------------------------------------------------
--- LOOPS
+-- LOOPS DE EXECUÇÃO
 ---------------------------------------------------
 
--- Loop de Ataque VIM
+-- Loop de Ataque VIM (AJUSTADO PARA 0.5s / 500ms)
 task.spawn(function()
     while true do
         if autoAttackV1 or comboEnabled then
             VIM:SendMouseButtonEvent(0,0,0,true,game,0)
-            task.wait(0.01)
+            task.wait(0.01) -- Tempo do clique (pressionar)
             VIM:SendMouseButtonEvent(0,0,0,false,game,0)
-            task.wait(0.05)
+            task.wait(0.5) -- DELAY DE 500ms SOLICITADO
         else
             task.wait(0.1)
         end
     end
 end)
 
--- Loop Principal
+-- Loop Principal (Movimento e Hitbox)
 task.spawn(function()
     while true do
         task.wait(0.01)
@@ -243,6 +238,7 @@ task.spawn(function()
     end
 end)
 
+-- Infinite Jump
 UIS.JumpRequest:Connect(function()
     if infJump and LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
         LP.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
