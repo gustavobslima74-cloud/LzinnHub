@@ -6,7 +6,6 @@ local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
 local VIM = game:GetService("VirtualInputManager")
-local LogService = game:GetService("LogService")
 
 -- VARIÁVEIS DE CONTROLE
 local selectedPlayer = nil
@@ -25,6 +24,9 @@ local autoAttackV1 = false
 local hitboxEnabled = false
 local hitboxSize = 5
 local hitboxTransparency = 1.0
+
+-- TEST VARS
+local clickTrackerActive = false
 
 ---------------------------------------------------
 -- JANELA PRINCIPAL
@@ -160,35 +162,46 @@ CombatTab:CreateSlider({
 })
 
 ---------------------------------------------------
--- ABA TESTE (SCANNER + CONSOLE)
+-- ABA TESTE (SCANNER + TRACKER)
 ---------------------------------------------------
-TestTab:CreateSection("Ferramentas Mobile")
+TestTab:CreateSection("Ferramentas de Identificação")
 
 TestTab:CreateButton({
     Name = "Abrir Console (F9)",
     Callback = function()
-        -- Simula a abertura do menu de logs do Roblox
-        game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.F9, false, game)
+        VIM:SendKeyEvent(true, Enum.KeyCode.F9, false, game)
     end
 })
 
-TestTab:CreateButton({
-    Name = "Escanear Botões (Ver Log)",
-    Callback = function()
-        print("--- ESCANEANDO BOTÕES DA TELA ---")
-        local gui = LP:FindFirstChildOfClass("PlayerGui")
-        if gui then
-            for _, v in pairs(gui:GetDescendants()) do
-                if v:IsA("TextButton") or v:IsA("ImageButton") then
-                    if v.Visible and v.AbsoluteSize.X > 0 then
-                        print(">> NOME: " .. v.Name .. " | TIPO: " .. v.ClassName)
-                    end
+TestTab:CreateToggle({
+    Name = "Rastreador de Cliques (Log)",
+    CurrentValue = false,
+    Callback = function(v)
+        clickTrackerActive = v
+        if v then
+            Rayfield:Notify({Title = "Rastreador", Content = "Ativado! Clique em algo para ver o nome no Console.", Duration = 3})
+        end
+    end
+})
+
+-- LÓGICA DO RASTREADOR
+local function trackClicks()
+    -- Conecta ao clique do mouse/toque
+    UIS.InputBegan:Connect(function(input, processed)
+        if clickTrackerActive and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+            local guiObjects = LP.PlayerGui:GetGuiObjectsAtPosition(input.Position.X, input.Position.Y)
+            for _, obj in pairs(guiObjects) do
+                if obj:IsA("TextButton") or obj:IsA("ImageButton") then
+                    print("--- BOTÃO CLICADO ---")
+                    print("Nome: " .. obj.Name)
+                    print("Caminho: " .. obj:GetFullName())
+                    print("---------------------")
                 end
             end
         end
-        Rayfield:Notify({Title = "Scanner", Content = "Botões listados no Console!", Duration = 5})
-    end
-})
+    end)
+end
+trackClicks()
 
 ---------------------------------------------------
 -- LOOPS DE EXECUÇÃO
