@@ -32,7 +32,7 @@ highlight.FillTransparency = 0.5
 highlight.OutlineTransparency = 0
 
 local Window = Rayfield:CreateWindow({
-    Name = "Lzinn Hub | v1.9",
+    Name = "Lzinn Hub | v1.9 FIXED",
     LoadingTitle = "Lzinn Interface v1.9",
     LoadingSubtitle = "by Lzinn7",
     ConfigurationSaving = { Enabled = false }
