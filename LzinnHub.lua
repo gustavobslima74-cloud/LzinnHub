@@ -4,7 +4,7 @@ local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
 
--- VARIÁVEIS OFICIAIS v2.0
+-- VARIÁVEIS LIMPAS (Sem comandos de ataque)
 local selectedPlayer = nil
 local autoSelect = false
 local followEnabled = false
@@ -16,16 +16,16 @@ local infJump = false
 local hitboxEnabled = false
 local hitboxSize = 5
 
--- Criar Highlight Global RGB
+-- Highlight RGB
 local highlight = Instance.new("Highlight")
 highlight.Name = "LzinnHighlight_v2"
 highlight.FillTransparency = 0.5
 highlight.OutlineTransparency = 0
 
 local Window = Rayfield:CreateWindow({
-    Name = "Lzinn Hub | v2.0 Official",
+    Name = "Lzinn Hub | v2.0 Oficial",
     LoadingTitle = "Lzinn Interface v2.0",
-    LoadingSubtitle = "by Lzinn7",
+    LoadingSubtitle = "by Lzinn7 - Estável",
     ConfigurationSaving = { Enabled = false }
 })
 
@@ -34,7 +34,7 @@ local PlayerTab = Window:CreateTab("Jogador", 4483362458)
 local CombatTab = Window:CreateTab("Combate", 4483362458)
 
 ---------------------------------------------------
--- LÓGICA RGB HIGHLIGHT
+-- LÓGICA VISUAL (HIGHLIGHT)
 ---------------------------------------------------
 task.spawn(function()
     while true do
@@ -49,7 +49,7 @@ end)
 
 task.spawn(function()
     while true do
-        task.wait(0.1)
+        task.wait(0.2)
         if selectedPlayer and selectedPlayer.Character then
             highlight.Parent = selectedPlayer.Character
         else
@@ -68,7 +68,7 @@ TeleportTab:CreateToggle({
 })
 
 local PlayerDropdown = TeleportTab:CreateDropdown({
-    Name = "Selecionar Jogador",
+    Name = "Selecionar Jogador manualmente",
     Options = {"Nenhum"},
     CurrentOption = {"Nenhum"},
     Callback = function(Value)
@@ -77,7 +77,7 @@ local PlayerDropdown = TeleportTab:CreateDropdown({
 })
 
 TeleportTab:CreateButton({
-    Name = "Atualizar Lista",
+    Name = "Atualizar Lista de Jogadores",
     Callback = function()
         local names = {}
         for _,p in pairs(Players:GetPlayers()) do
@@ -88,14 +88,14 @@ TeleportTab:CreateButton({
 })
 
 TeleportTab:CreateDropdown({
-    Name = "Posição",
+    Name = "Posição do Grudar",
     Options = {"Behind", "Front", "Above"},
     CurrentOption = {"Behind"},
     Callback = function(v) mode = v[1] end
 })
 
 TeleportTab:CreateToggle({
-    Name = "Grudar no Player",
+    Name = "Grudar no Player (Follow)",
     CurrentValue = false,
     Callback = function(v) followEnabled = v end
 })
@@ -104,7 +104,7 @@ TeleportTab:CreateToggle({
 -- ABA JOGADOR
 ---------------------------------------------------
 PlayerTab:CreateToggle({
-    Name = "Speed (Ligado/Desligado)",
+    Name = "Ativar Speed",
     CurrentValue = false,
     Callback = function(v) speedEnabled = v end
 })
@@ -124,7 +124,7 @@ PlayerTab:CreateToggle({
 })
 
 ---------------------------------------------------
--- ABA COMBATE (SISTEMA ESTÁVEL)
+-- ABA COMBATE
 ---------------------------------------------------
 CombatTab:CreateSection("Hitbox")
 CombatTab:CreateToggle({
@@ -134,7 +134,7 @@ CombatTab:CreateToggle({
 })
 
 CombatTab:CreateSlider({
-    Name = "Tamanho Hitbox",
+    Name = "Tamanho da Hitbox",
     Range = {2, 50},
     Increment = 1,
     CurrentValue = 5,
@@ -142,60 +142,66 @@ CombatTab:CreateSlider({
 })
 
 ---------------------------------------------------
--- LOOPS DE EXECUÇÃO
+-- LOOP ÚNICO DE EXECUÇÃO (OTIMIZADO)
 ---------------------------------------------------
-
--- Loop Principal (Movimento e Hitbox)
 task.spawn(function()
     while true do
         task.wait(0.01)
-        if not LP.Character then continue end
-        local Hum = LP.Character:FindFirstChildOfClass("Humanoid")
-        local HRP = LP.Character:FindFirstChild("HumanoidRootPart")
+        
+        local Character = LP.Character
+        if not Character then continue end
+        
+        local Hum = Character:FindFirstChildOfClass("Humanoid")
+        local HRP = Character:FindFirstChild("HumanoidRootPart")
+        if not HRP or not Hum then continue end
 
-        -- Auto Select
+        -- 1. Lógica de Seleção Automática
         if autoSelect then
             local closest = nil
             local dist = math.huge
             for _,p in pairs(Players:GetPlayers()) do
                 if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                    local d = (LP.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude
-                    if d < dist then dist = d closest = p end
+                    local d = (HRP.Position - p.Character.HumanoidRootPart.Position).Magnitude
+                    if d < dist then 
+                        dist = d 
+                        closest = p 
+                    end
                 end
             end
-            if closest then selectedPlayer = closest end
+            selectedPlayer = closest
         end
 
-        -- Speed
-        if speedEnabled and Hum then 
+        -- 2. Lógica de Speed
+        if speedEnabled then 
             Hum.WalkSpeed = speedValue 
         end
 
-        -- Follow (Grudar)
+        -- 3. Lógica de Follow (Grudar) - APENAS MOVIMENTO
         if followEnabled and selectedPlayer and selectedPlayer.Character then
             local tHRP = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if tHRP and HRP then
+            if tHRP then
                 local offset = (mode == "Behind" and tHRP.CFrame.LookVector * -distance) or 
                                (mode == "Front" and tHRP.CFrame.LookVector * distance) or 
                                Vector3.new(0, distance, 0)
+                
+                -- Movendo o personagem sem disparar cliques
                 HRP.CFrame = CFrame.new(tHRP.Position + offset, tHRP.Position)
             end
         end
 
-        -- Hitbox
+        -- 4. Lógica de Hitbox
         if hitboxEnabled then
             for _, p in pairs(Players:GetPlayers()) do
                 if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                    local pRoot = p.Character.HumanoidRootPart
-                    pRoot.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-                    pRoot.CanCollide = false
+                    p.Character.HumanoidRootPart.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+                    p.Character.HumanoidRootPart.CanCollide = false
                 end
             end
         end
     end
 end)
 
--- Infinite Jump
+-- Jump Request
 UIS.JumpRequest:Connect(function()
     if infJump and LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
         LP.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
@@ -203,7 +209,7 @@ UIS.JumpRequest:Connect(function()
 end)
 
 Rayfield:Notify({
-    Title = "Sucesso!",
-    Content = "Lzinn Hub v2.0 carregado com estabilidade.",
+    Title = "Lzinn Hub v2.0",
+    Content = "Scripts de ataque removidos com sucesso!",
     Duration = 5
 })
