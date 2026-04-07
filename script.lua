@@ -6,6 +6,7 @@ local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
 local VIM = game:GetService("VirtualInputManager")
+local VU = game:GetService("VirtualUser")
 
 -- VARIÁVEIS DE CONTROLE
 local selectedPlayer = nil
@@ -22,6 +23,7 @@ local infJump = false
 -- COMBAT/TEST VARS
 local autoAttackV1 = false
 local autoAttackV2 = false
+local autoAttackV3 = false
 local hitboxEnabled = false
 local hitboxSize = 5
 local hitboxTransparency = 1.0
@@ -70,7 +72,7 @@ TeleportTab:CreateToggle({
 
 local PlayerDropdown = TeleportTab:CreateDropdown({
     Name = "Selecionar Jogador",
-    Options = {}, -- Preenchido pelo botão de atualizar
+    Options = {},
     CurrentOption = {},
     Callback = function(Value)
         selectedPlayer = Players:FindFirstChild(Value[1])
@@ -152,53 +154,66 @@ CombatTab:CreateSlider({
 ---------------------------------------------------
 -- ABA TESTE (VERSÕES DE AUTO ATAQUE)
 ---------------------------------------------------
-TestTab:CreateSection("Testes de Ataque")
+TestTab:CreateSection("Laboratório de Ataque")
 
 TestTab:CreateToggle({
-    Name = "Auto Atack V1 (Internal)",
+    Name = "V1: Original (Funciona / Bug Analogico)",
     CurrentValue = false,
     Callback = function(v) autoAttackV1 = v end
 })
 
 TestTab:CreateToggle({
-    Name = "Auto Atack V2 (Touch Sim)",
+    Name = "V2: VU (Tentativa s/ Bug)",
     CurrentValue = false,
     Callback = function(v) autoAttackV2 = v end
 })
 
-TestTab:CreateSection("Nota: V2 tenta manter o analógico visível.")
+TestTab:CreateToggle({
+    Name = "V3: Activate Internal (Leve)",
+    CurrentValue = false,
+    Callback = function(v) autoAttackV3 = v end
+})
 
 ---------------------------------------------------
 -- LOOPS DE EXECUÇÃO
 ---------------------------------------------------
 
--- LOOP AUTO ATAQUE V1 (Internal Activate)
+-- LOOP V1 (O que você mandou, usando VirtualInputManager)
 task.spawn(function()
     while true do
         if autoAttackV1 then
-            local tool = LP.Character and LP.Character:FindFirstChildOfClass("Tool")
-            if tool then tool:Activate() end
-            task.wait(0.1)
+            VIM:SendMouseButtonEvent(0,0,0,true,game,0)
+            task.wait(0.01)
+            VIM:SendMouseButtonEvent(0,0,0,false,game,0)
+            task.wait(0.04)
         else
-            task.wait(0.5)
+            task.wait(0.1)
         end
     end
 end)
 
--- LOOP AUTO ATAQUE V2 (Touch Simulation)
+-- LOOP V2 (Usando VirtualUser para tentar salvar o analógico)
 task.spawn(function()
     while true do
         if autoAttackV2 then
-            local tool = LP.Character and LP.Character:FindFirstChildOfClass("Tool")
-            if tool then
-                -- Ativa a ferramenta e simula um toque na tela (sem chamar o mouse)
-                tool:Activate()
-                game:GetService("VirtualUser"):ClickButton1(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-            end
-            task.wait(0.05)
+            VU:Button1Down(Vector2.new(0,0))
+            task.wait(0.01)
+            VU:Button1Up(Vector2.new(0,0))
+            task.wait(0.04)
         else
-            task.wait(0.5)
+            task.wait(0.1)
         end
+    end
+end)
+
+-- LOOP V3 (Tentativa direta na ferramenta)
+task.spawn(function()
+    while true do
+        if autoAttackV3 then
+            local tool = LP.Character and LP.Character:FindFirstChildOfClass("Tool")
+            if tool then tool:Activate() end
+        end
+        task.wait(0.1)
     end
 end)
 
@@ -209,7 +224,7 @@ UIS.JumpRequest:Connect(function()
     end
 end)
 
--- LOOP PRINCIPAL (MOVIMENTO E HITBOX)
+-- LOOP PRINCIPAL
 task.spawn(function()
     while true do
         task.wait(0.01)
@@ -247,5 +262,3 @@ task.spawn(function()
         end
     end
 end)
-
-Rayfield:Notify({Title = "Lzinn Hub", Content = "Script Pronto para Testes!", Duration = 5})
