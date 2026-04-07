@@ -5,6 +5,7 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
+local VIM = game:GetService("VirtualInputManager")
 local Camera = workspace.CurrentCamera
 
 -- VARIÁVEIS DE CONTROLE
@@ -19,11 +20,8 @@ local speedEnabled = false
 local speedValue = 16
 local infJump = false
 
--- COMBAT VARS
-local aimbot = false
-local aimPart = "Head"
-local autoAttack = false
-local autoFarm = false
+-- COMBAT/TEST VARS
+local newAutoAttack = false
 local hitboxEnabled = false
 local hitboxSize = 5
 local hitboxTransparency = 1.0
@@ -41,6 +39,7 @@ local Window = Rayfield:CreateWindow({
 local TeleportTab = Window:CreateTab("Teleporte", 4483362458)
 local PlayerTab = Window:CreateTab("Jogador", 4483362458)
 local CombatTab = Window:CreateTab("Combate", 4483362458)
+local TestTab = Window:CreateTab("Teste", 4483362458) -- Aba temporária para o novo código
 
 ---------------------------------------------------
 -- FUNÇÕES SUPORTE
@@ -130,31 +129,6 @@ PlayerTab:CreateToggle({
 ---------------------------------------------------
 -- ABA COMBATE
 ---------------------------------------------------
-CombatTab:CreateToggle({
-    Name = "Aimbot (Travar Mira)",
-    CurrentValue = false,
-    Callback = function(v) aimbot = v end
-})
-
-CombatTab:CreateDropdown({
-    Name = "Alvo do Ataque",
-    Options = {"Head", "HumanoidRootPart"},
-    CurrentOption = {"Head"},
-    Callback = function(v) aimPart = v[1] end
-})
-
-CombatTab:CreateToggle({
-    Name = "Auto Atack",
-    CurrentValue = false,
-    Callback = function(v) autoAttack = v end
-})
-
-CombatTab:CreateToggle({
-    Name = "Auto Farm (Gruda + Ataca)",
-    CurrentValue = false,
-    Callback = function(v) autoFarm = v end
-})
-
 CombatTab:CreateSection("Configurações de Hitbox")
 
 CombatTab:CreateToggle({
@@ -180,8 +154,34 @@ CombatTab:CreateSlider({
 })
 
 ---------------------------------------------------
--- LOOP DE EXECUÇÃO (O CORAÇÃO DO SCRIPT)
+-- ABA TESTE (NOVO AUTO ATAQUE)
 ---------------------------------------------------
+TestTab:CreateToggle({
+    Name = "Novo Auto Attack (VIM)",
+    CurrentValue = false,
+    Callback = function(v)
+        newAutoAttack = v
+    end
+})
+
+---------------------------------------------------
+-- LOOPS DE EXECUÇÃO
+---------------------------------------------------
+
+-- NOVO AUTO ATAQUE (Código que você enviou)
+task.spawn(function()
+    while true do
+        if newAutoAttack then
+            -- Simula o clique do mouse no centro da tela
+            VIM:SendMouseButtonEvent(0,0,0,true,game,0)
+            task.wait(0.01)
+            VIM:SendMouseButtonEvent(0,0,0,false,game,0)
+            task.wait(0.04) -- velocidade do spam
+        else
+            task.wait(0.1)
+        end
+    end
+end)
 
 -- Pulo Infinito
 UIS.JumpRequest:Connect(function()
@@ -198,19 +198,19 @@ task.spawn(function()
         local HRP = LP.Character.HumanoidRootPart
         local Hum = LP.Character:FindFirstChildOfClass("Humanoid")
 
-        -- Lógica de Seleção Automática
-        if autoSelect or autoFarm then
+        -- Auto Select
+        if autoSelect then
             local closest = getClosestPlayer()
             if closest then selectedPlayer = closest end
         end
 
-        -- Lógica de Movimentação (Speed)
+        -- Speed
         if speedEnabled and Hum then
             Hum.WalkSpeed = speedValue
         end
 
-        -- Lógica de Teleporte/Grudar (Follow ou Auto Farm)
-        if (followEnabled or autoFarm) and selectedPlayer and selectedPlayer.Character then
+        -- Follow (Grudar)
+        if followEnabled and selectedPlayer and selectedPlayer.Character then
             local tHRP = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
             if tHRP then
                 local offset
@@ -222,23 +222,7 @@ task.spawn(function()
             end
         end
 
-        -- Lógica de Aimbot (Mira na Cabeça/Trigger)
-        if aimbot and selectedPlayer and selectedPlayer.Character then
-            local targetPart = selectedPlayer.Character:FindFirstChild(aimPart)
-            if targetPart then
-                Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position)
-            end
-        end
-
-        -- Lógica de Ataque Automático (Auto Attack / Farm)
-        if (autoAttack or autoFarm) then
-            local tool = LP.Character:FindFirstChildOfClass("Tool")
-            if tool then
-                tool:Activate()
-            end
-        end
-
-        -- Lógica de Hitbox
+        -- Hitbox
         if hitboxEnabled then
             for _, p in pairs(Players:GetPlayers()) do
                 if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
@@ -254,6 +238,6 @@ end)
 
 Rayfield:Notify({
     Title = "Lzinn Hub",
-    Content = "Script carregado com sucesso!",
+    Content = "Aba Teste Adicionada!",
     Duration = 5
 })
